@@ -1,0 +1,1013 @@
+<meta charset="utf-8">
+<title>Byaj Ledger</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Zilla+Slab:wght@500;600;700&display=swap">
+<style>
+/* Layout: a bank passbook. Deposits on the left, the printed ledger on the right. Teal ink, violet for "rubber stamp" alerts. */
+:root {
+  --bg: #e9f0ee; --surface: #fbfdfc; --sunken: #dfe9e6; --ink: #12302c; --muted: #4f6b66; --rule: #c3d3cf;
+  --accent: #0d6b5c; --on-accent: #ffffff; --stamp: #5a3ea6; --stamp-bg: #ebe6f8; --warn: #8a5a00; --warn-bg: #fbf0d6; --bad: #a32a2a;
+  --display: "Zilla Slab", Rockwell, Georgia, serif; --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1a18; --surface: #15231f; --sunken: #1c2e2a; --ink: #e2efeb; --muted: #9db5af; --rule: #2e4540;
+  --accent: #4fc2ac; --on-accent: #06211c; --stamp: #bda8f5; --stamp-bg: #2a2345; --warn: #eec066; --warn-bg: #3a2d0f; --bad: #f09090; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1a18; --surface: #15231f; --sunken: #1c2e2a; --ink: #e2efeb; --muted: #9db5af; --rule: #2e4540;
+  --accent: #4fc2ac; --on-accent: #06211c; --stamp: #bda8f5; --stamp-bg: #2a2345; --warn: #eec066; --warn-bg: #3a2d0f; --bad: #f09090; color-scheme: dark }
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px }
+header { display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: end; justify-content: space-between }
+h1 { font: 700 2.1rem/1.1 var(--display); margin: 0 } h2 { font: 600 1.3rem/1.25 var(--display); margin: 0; text-wrap: balance } h3 { font: 600 1.05rem/1.3 var(--display); margin: 0 }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 62ch }
+nav, .seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--sunken); padding: 4px; border-radius: 6px; width: fit-content; max-width: 100% }
+button { font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--rule); background: var(--surface); border-radius: 5px; padding: 6px 12px }
+button:hover { border-color: var(--accent) }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+nav button, .seg button { border-color: transparent; background: none; font-weight: 500 }
+nav button[aria-selected="true"], .seg button[aria-selected="true"] { background: var(--accent); color: var(--on-accent) }
+.link { border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; text-align: left }
+.danger { color: var(--bad) }
+.cols { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 20px; align-items: start }
+.stack { display: grid; gap: 16px; min-width: 0 } .tight { display: grid; gap: 8px; min-width: 0 }
+.sheet { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; display: grid; gap: 12px; min-width: 0 }
+.row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between }
+.dep { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; width: 100%; text-align: left; padding: 8px 10px }
+.dep[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.dep b { font-weight: 600; overflow-wrap: anywhere } .dep small { color: var(--muted); grid-column: 1 / -1 }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px }
+.fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+label { display: grid; gap: 3px; font-size: .84rem; font-weight: 500; color: var(--muted); align-content: start; min-width: 0 }
+textarea { font: 400 .85rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 8px; width: 100%; min-height: 90px; resize: vertical }
+#sync { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 14px }
+#sync .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500 }
+input, select { font: 400 .95rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 8px; width: 100%; min-width: 0 }
+.hint { font-size: .8rem; color: var(--muted); font-weight: 400 }
+details summary { cursor: pointer; font-weight: 500; color: var(--accent) } details > div { margin-top: 10px; display: grid; gap: 10px }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden }
+.tile { background: var(--surface); padding: 12px 14px } .tile span { display: block; font-size: .82rem; color: var(--muted) }
+.tile b { display: block; font: 600 1.4rem/1.3 var(--display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere } .tile small { color: var(--muted); font-size: .78rem }
+.scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 5px; max-height: 620px; overflow-y: auto }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .9rem }
+th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule) }
+th:first-child, td:first-child { text-align: left }
+td.txt, th.txt { text-align: left; white-space: normal; min-width: 130px }
+thead th { position: sticky; top: 0; background: var(--sunken); font-weight: 600; font-size: .82rem; z-index: 1 }
+tfoot td { font-weight: 600; background: var(--sunken); border-bottom: 0 }
+tr.credit td { background: color-mix(in srgb, var(--accent) 10%, transparent) }
+td small { display: block; color: var(--muted); font-size: .76rem }
+.pill { display: inline-block; font-size: .75rem; font-weight: 600; padding: 1px 7px; border-radius: 3px; background: var(--sunken); color: var(--muted); white-space: nowrap }
+.pill.stamp { background: var(--stamp-bg); color: var(--stamp) } .pill.ok { color: var(--accent) } .pill.warn { background: var(--warn-bg); color: var(--warn) }
+.note { background: var(--warn-bg); color: var(--warn); padding: 8px 12px; border-radius: 4px; font-size: .88rem } .note.stamp { background: var(--stamp-bg); color: var(--stamp) }
+.prose { font-size: .9rem; color: var(--muted); display: grid; gap: 6px; max-width: 80ch } .prose p, .prose ul { margin: 0 } .prose ul { padding-left: 18px; display: grid; gap: 4px } .prose strong { color: var(--ink); font-weight: 600 }
+.txrow { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 6px }
+@media (max-width: 920px) { .cols { grid-template-columns: minmax(0, 1fr) } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Byaj Ledger</h1>
+      <p>Bank-style interest on FDs, RDs and savings accounts, by day, month and quarter, with a financial-year view for advance tax and TDS.</p>
+    </div>
+    <nav role="tablist" aria-label="Main view">
+      <button role="tab" id="tab-ledger" data-tab="ledger">Deposit ledger</button>
+      <button role="tab" id="tab-tax" data-tab="tax">Quarterly tax view</button>
+      <button role="tab" id="tab-rules" data-tab="rules">Settings</button>
+    </nav>
+  </header>
+  <section id="sync" class="row" aria-live="polite" hidden></section>
+  <div id="main" class="cols">
+    <aside class="stack">
+      <section class="sheet">
+        <div class="row"><h2>Your deposits</h2><button id="add">+ Add</button></div>
+        <div id="deplist" class="tight"></div>
+        <div class="hint"><span id="savehint">Saved only in this browser.</span> <button class="link" id="reset">Restore examples</button></div>
+      </section>
+      <section class="sheet" id="editor"></section>
+    </aside>
+    <div class="stack" id="results"></div>
+  </div>
+  <div class="stack" id="taxpage" hidden></div>
+  <div class="stack" id="rulespage" hidden></div>
+</div>
+
+<script>
+/*ENGINE-START*/
+const DAY = 864e5, RS = '₹';
+const dn = s => { const [y, m, d] = String(s).split('-').map(Number); return Date.UTC(y, m - 1, d) / DAY };
+const parts = n => { const t = new Date(n * DAY); return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() } };
+const iso = n => new Date(n * DAY).toISOString().slice(0, 10);
+const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+function addMonths(n, k) {
+  const p = parts(n), first = Date.UTC(p.y, p.m - 1 + k, 1), last = new Date(Date.UTC(p.y, p.m + k, 0)).getUTCDate();
+  return first / DAY + Math.min(p.d, last) - 1;
+}
+const isMonthEnd = n => parts(n + 1).d === 1;
+const fyOf = n => { const p = parts(n); return p.m >= 4 ? p.y : p.y - 1 };
+const qOf = n => { const m = parts(n).m; return m >= 4 ? Math.ceil((m - 3) / 3) : 4 };
+const fyLabel = y => `FY ${y}-${String((y + 1) % 100).padStart(2, '0')}`;
+
+function endOf(dep) {
+  if (dep.closeEnd != null) return dep.closeEnd;
+  if (dep.mode === 'sav') return dn(dep.end) + 1;
+  return addMonths(dn(dep.start), (+dep.ty || 0) * 12 + (+dep.tm || 0)) + (+dep.td || 0);
+}
+
+/* Every rate and limit the tax maths uses. Percentages are whole numbers; upto: null means "and above". */
+const DEFAULT_RULES = {
+  newSlabs: [{ upto: 400000, rate: 0 }, { upto: 800000, rate: 5 }, { upto: 1200000, rate: 10 }, { upto: 1600000, rate: 15 }, { upto: 2000000, rate: 20 }, { upto: 2400000, rate: 25 }, { upto: null, rate: 30 }],
+  oldSlabs: [{ upto: 250000, rate: 0 }, { upto: 500000, rate: 5 }, { upto: 1000000, rate: 20 }, { upto: null, rate: 30 }],
+  oldSeniorExempt: 300000, stdNew: 75000, stdOld: 50000,
+  rebateNewLimit: 1200000, rebateOldLimit: 500000, rebateOldMax: 12500,
+  stcgRate: 20, ltcgRate: 12.5, ltcgExempt: 125000, cess: 4,
+  surcharge: [{ over: 5000000, rate: 10 }, { over: 10000000, rate: 15 }, { over: 20000000, rate: 25 }, { over: 50000000, rate: 37 }],
+  surchargeCapNew: 25, surchargeCapGains: 15,
+  tdsPan: 10, tdsNoPan: 20, tdsLimit: 50000, tdsLimitSenior: 100000, dedOld: 10000, dedOldSenior: 50000,
+  advanceMin: 10000, lateRate: 1, yearEndPct: 90,
+  instalments: [{ m: 6, d: 15, pct: 15, safe: 12, months: 3 }, { m: 9, d: 15, pct: 45, safe: 36, months: 3 }, { m: 12, d: 15, pct: 75, safe: 75, months: 3 }, { m: 3, d: 15, pct: 100, safe: 100, months: 1 }]
+};
+
+/* Walks the deposit one day at a time, the way a core banking system accrues.
+   Maturity day itself earns nothing: start date counts, end date does not. */
+function simulate(dep) {
+  const start = dn(dep.start), end = endOf(dep), days = end - start, r = +dep.rate, mode = dep.mode;
+  const rate = mode === 'mpay' ? r / (1 + r / 1200) : r;   // monthly payout FDs use the discounted rate
+  const simple = mode === 'cum' && days < 180 && dep.shortSimple !== false;
+  const roundTo = dep.round === 'rupee' ? 1 : 100, round = x => Math.round(x * roundTo) / roundTo;
+  const every = mode === 'mpay' ? 1 : 3, credits = new Set();
+  if (!simple) {
+    if (dep.basis === 'anniv') for (let k = 1; addMonths(start, every * k) - 1 < end; k++) credits.add(addMonths(start, every * k) - 1);
+    else for (let n = start; n < end; n++) if (isMonthEnd(n) && (every === 1 || parts(n).m % 3 === 0)) credits.add(n);
+  }
+  const tx = new Map(), addTx = (d, a) => tx.set(d, (tx.get(d) || 0) + a);
+  const amt = +dep.amt;
+  if (mode === 'rd') for (let k = 0; addMonths(start, k) < end; k++) addTx(addMonths(start, k), amt);
+  else addTx(start, amt);
+  if (mode === 'sav') for (const t of dep.tx || []) if (t.date && +t.amt) { const d = dn(t.date); if (d >= start && d < end) addTx(d, +t.amt) }
+  const payout = mode === 'qpay' || mode === 'mpay', rows = [], receipts = [], flows = [];
+  let bal = 0, pend = 0, invested = 0, total = 0, overdrawn = false;
+  for (let n = start; n < end; n++) {
+    const added = tx.get(n) || 0;
+    bal += added; invested += added;
+    if (bal < 0) { overdrawn = true; bal = 0 }
+    if (added) flows.push([n, -added]);
+    const base = bal, denom = dep.dc === 'actual' && isLeap(parts(n).y) ? 366 : 365;
+    let acc = base * rate / 100 / denom, credit = 0;
+    pend += acc;
+    const last = n === end - 1;
+    if (credits.has(n) || last) {
+      credit = round(pend);
+      pend -= credit;
+      if (last) { acc -= pend; pend = 0 }   // absorb rounding so accruals always tally with credits
+      total += credit;
+      if (payout) { receipts.push([last ? end : n, credit]); flows.push([last ? end : n, credit]) }
+      else { bal += credit; if (mode === 'sav') receipts.push([n, credit]) }
+    }
+    rows.push({ n, added, base, acc, credit, pend: Math.max(pend, 0), close: bal });
+  }
+  if (!payout && mode !== 'sav') receipts.push([end, total]);
+  flows.push([end, bal]);
+  return { start, end, days, rate, simple, rows, receipts, total, invested, maturity: bal, overdrawn, flows, xirr: xirr(flows), credits: credits.size };
+}
+
+function xirr(flows) {
+  if (flows.length < 2) return null;
+  const t0 = flows[0][0], npv = r => flows.reduce((s, [d, a]) => s + a / Math.pow(1 + r, (d - t0) / 365), 0);
+  let lo = -0.9, hi = 2;
+  if (npv(lo) * npv(hi) > 0) return null;
+  for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (npv(lo) * npv(m) <= 0) hi = m; else lo = m }
+  return (lo + hi) / 2 * 100;
+}
+
+/* The shortcut formula most online calculators use, shown so a bank figure can be reconciled. */
+function textbook(dep, s) {
+  const P = +dep.amt, r = +dep.rate, i = r / 400;
+  if (dep.mode === 'cum') return s.simple ? P * r * s.days / 36500 : P * Math.pow(1 + i, 4 * s.days / 365) - P;
+  if (dep.mode === 'qpay') return P * r * s.days / 36500;
+  if (dep.mode === 'mpay') return P * s.rate * s.days / 36500;
+  if (dep.mode === 'rd') { const n = s.rows.filter(x => x.added).length; let a = 0; for (let k = 1; k <= n; k++) a += P * Math.pow(1 + i, k / 3); return a - P * n }
+  return null;
+}
+
+function group(rows, keyFn) {
+  const out = new Map();
+  for (const x of rows) {
+    const k = keyFn(x.n);
+    let g = out.get(k);
+    if (!g) out.set(k, g = { key: k, from: x.n, to: x.n, days: 0, open: x.base - x.added, added: 0, acc: 0, credit: 0, close: 0 });
+    g.to = x.n; g.days++; g.added += x.added; g.acc += x.acc; g.credit += x.credit; g.close = x.close;
+  }
+  return [...out.values()];
+}
+
+/* Interest per Apr-Jun / Jul-Sep / Oct-Dec / Jan-Mar for one FY, by accrual or by money received. */
+function quarters(s, fy, basis) {
+  const q = [0, 0, 0, 0];
+  if (basis === 'receipt') { for (const [d, a] of s.receipts) if (fyOf(d) === fy) q[qOf(d) - 1] += a }
+  else for (const x of s.rows) if (fyOf(x.n) === fy) q[qOf(x.n) - 1] += x.acc;
+  return q;
+}
+
+function taxCalc(items, fy, t, R = DEFAULT_RULES) {
+  const senior = t.age === 'senior', limit = senior ? +R.tdsLimitSenior : +R.tdsLimit;
+  let interest = 0, savings = 0, tds = 0;
+  const banks = new Map();
+  for (const { dep, sim } of items) {
+    const q = quarters(sim, fy, t.basis), sum = q[0] + q[1] + q[2] + q[3];
+    interest += sum;
+    if (dep.mode === 'sav') { savings += sum; continue }
+    const key = (dep.bank || 'Unnamed bank').trim(), b = banks.get(key.toLowerCase()) || { name: key, q: [0, 0, 0, 0], deps: 0 };
+    quarters(sim, fy, 'accrual').forEach((v, i) => b.q[i] += v);   // banks deduct TDS on accrual, whatever basis you file on
+    b.deps++; banks.set(key.toLowerCase(), b);
+  }
+  const bankRows = [...banks.values()].map(b => {
+    let run = 0, cross = null;
+    b.q.forEach((v, i) => { run += v; if (cross == null && run > limit) cross = i + 1 });
+    const tax = run > limit ? run * (t.pan ? +R.tdsPan : +R.tdsNoPan) / 100 : 0;
+    tds += tax;
+    return { ...b, total: run, cross, tds: tax };
+  });
+  const deduction = t.regime === 'old' ? Math.min(senior ? +R.dedOldSenior : +R.dedOld, senior ? interest : savings) : 0;
+  const tax = Math.max(interest - deduction, 0) * t.slab / 100 * (1 + R.cess / 100);
+  return { interest, savings, deduction, tax, tds, net: tax - tds, bankRows, effective: interest ? tax / interest : 0 };
+}
+/* Full-year income tax: slabs, standard deduction, rebate, special rates on equity gains, surcharge, cess. */
+const n0 = x => Math.max(+x || 0, 0);
+function bands(regime, age, R) {
+  const rows = (regime === 'new' ? R.newSlabs : R.oldSlabs).map(s => [s.upto == null ? Infinity : +s.upto, +s.rate / 100]).sort((a, b) => a[0] - b[0]);
+  if (regime === 'old' && age === 'senior') rows[0] = [+R.oldSeniorExempt, rows[0][1]];
+  return rows;
+}
+function slabTax(inc, regime, age, R) {
+  let tax = 0, low = 0;
+  for (const [top, rate] of bands(regime, age, R)) { if (inc > low) tax += (Math.min(inc, top) - low) * rate; low = top }
+  return tax;
+}
+function fullTax(inc, regime, age, interest, interestDed, R = DEFAULT_RULES) {
+  const isNew = regime === 'new', std = Math.min(n0(inc.salary), isNew ? +R.stdNew : +R.stdOld);
+  const slabInc = Math.max(n0(inc.salary) - std + n0(inc.rent) + n0(inc.biz) + n0(inc.other) + n0(interest) - (isNew ? 0 : n0(inc.oldDed) + n0(interestDed)), 0);
+  const stcg = n0(inc.stcg), ltcg = n0(inc.ltcg), total = slabInc + stcg + ltcg;
+  const special = stcg * R.stcgRate / 100 + Math.max(ltcg - R.ltcgExempt, 0) * R.ltcgRate / 100;
+  const slabPart = i => {
+    let tax = slabTax(i, regime, age, R);
+    const all = i + stcg + ltcg;
+    if (isNew) { if (all <= +R.rebateNewLimit) tax = 0; else tax = Math.min(tax, all - R.rebateNewLimit) }   // rebate with marginal relief
+    else if (all <= +R.rebateOldLimit) tax = Math.max(tax - R.rebateOldMax, 0);
+    return tax;
+  };
+  const slab = slabPart(slabInc), cess = R.cess / 100;
+  const steps = R.surcharge.map(s => [+s.over, (isNew ? Math.min(+s.rate, +R.surchargeCapNew) : +s.rate) / 100]).sort((a, b) => a[0] - b[0]);
+  const withSurcharge = (s, r) => s + special + s * r + special * Math.min(r, R.surchargeCapGains / 100);
+  let rate = 0, prev = 0, floor = 0;
+  for (const [limit, r] of steps) if (total > limit) { prev = rate; rate = r; floor = limit }
+  let before = withSurcharge(slab, rate);
+  if (rate && rate !== prev) before = Math.min(before, withSurcharge(slabPart(Math.max(slabInc - (total - floor), 0)), prev) + (total - floor));
+  const top = bands(regime, age, R).find(([t]) => slabInc <= t)[1];
+  return { total: before * (1 + cess), cess: before * cess, slabInc, taxable: total, std, top: isNew && total <= +R.rebateNewLimit ? 0 : top };
+}
+
+/* Instalments and the interest charged for missing them. Tax due = whole-year tax minus whole-year TDS. */
+function advancePlan(due, payments, fy, today, R = DEFAULT_RULES) {
+  const defs = R.instalments.map(x => [Date.UTC(+x.m >= 4 ? fy : fy + 1, x.m - 1, +x.d), +x.pct, +x.safe, +x.months]).sort((a, b) => a[0] - b[0]);
+  const pays = (payments || []).filter(p => p.date && +p.amt > 0).map(p => [dn(p.date), +p.amt]);
+  const paidBy = cut => pays.reduce((s, [d, a]) => s + (d <= cut ? a : 0), 0);
+  const paidTotal = pays.reduce((s, [, a]) => s + a, 0), yearEnd = Date.UTC(fy + 1, 2, 31) / DAY;
+  const hundred = x => Math.floor(x / 100) * 100;
+  let covered = paidTotal, foundNext = false, locked = 0;
+  const rows = defs.map(([ms, pct, safe, months]) => {
+    const date = ms / DAY, required = due * pct / 100, paid = paidBy(date), past = date < today;
+    const shortfall = Math.max(required - paid, 0), charged = paid < due * safe / 100 ? hundred(shortfall) * months * R.lateRate / 100 : 0;
+    let toPay = 0, state;
+    if (past) { state = charged ? 'missed' : shortfall > .5 ? 'within' : 'met'; locked += charged }
+    else { toPay = Math.max(required - covered, 0); covered += toPay; state = foundNext ? 'later' : 'next'; foundNext = true }
+    return { date, pct, required, paid, toPay, interest: charged, state };
+  });
+  const paidYE = paidBy(yearEnd), unpaid = Math.max(due - paidTotal, 0), shortYE = paidYE < due * R.yearEndPct / 100;
+  const monthly = shortYE ? hundred(due - paidYE) * R.lateRate / 100 : 0;
+  let running = 0;
+  if (shortYE && today > yearEnd) { const a = parts(yearEnd + 1), b = parts(today); running = monthly * ((b.y - a.y) * 12 + b.m - a.m + 1) }
+  return { rows, locked, paidTotal, unpaid, paidYE, yearEnd, shortYE, monthly, running, over: today > yearEnd };
+}
+/*ENGINE-END*/
+
+/*SYNC-START*/
+/* Keeps one JSON file in the user's hidden Drive app folder in step with this browser.
+   Never overwrites a newer Drive copy: if both sides changed, the person chooses. */
+function createDriveSync({ api, readLocal, applyRemote, isPristine, store, onState, delay = 1500, retry = 30000 }) {
+  const meta = Object.assign({ version: null, base: null, email: null, connected: false }, store.load());
+  const text = x => JSON.stringify(x);
+  const view = { status: meta.connected ? 'signin' : 'off', email: meta.email, savedAt: null, choice: null, message: '' };
+  let fileId = null, timer = null, busy = false, again = false;
+  const set = patch => { Object.assign(view, patch); onState({ ...view }) };
+  const dirty = () => meta.base !== text(readLocal());
+  const remember = version => { meta.version = version; meta.base = text(readLocal()); store.save(meta) };
+  const fail = e => {
+    if (e && e.status === 401) set({ status: 'expired', message: '' });
+    else if (e && e.status === 403) set({ status: 'error', message: 'Google refused access to Drive. Sign out and sign in again, and allow the Drive permission.' });
+    else if (e && e.invalid) set({ status: 'error', message: 'The file in Drive could not be read, so nothing was changed. Your data on this device is still here.' });
+    else { set({ status: 'offline', message: '' }); clearTimeout(timer); timer = setTimeout(() => flush(), retry) }
+  };
+  const readRemote = async id => {
+    const file = await api.read(id);
+    if (!file || !file.data || !Array.isArray(file.data.deps)) throw { invalid: true };
+    return file;
+  };
+  async function upload() {
+    const sent = readLocal(), body = { schema: 1, savedAt: new Date().toISOString(), data: sent };
+    const res = fileId ? await api.update(fileId, body) : await api.create(body);
+    fileId = res.id || fileId;
+    meta.version = res.version; meta.base = text(sent); store.save(meta);
+    set({ status: 'saved', savedAt: Date.now(), message: '' });
+    if (dirty()) schedule();
+  }
+  const ask = (kind, remote) => set({ status: 'choice', choice: { kind, remote: remote ? { savedAt: remote.savedAt, deposits: remote.data.deps.length } : null, local: { deposits: readLocal().deps.length } } });
+  let pendingRemote = null;
+  async function connect() {
+    clearTimeout(timer);
+    set({ status: 'connecting', message: '', choice: null });
+    try {
+      const email = await api.whoami();
+      const changedAccount = !!(meta.email && email && meta.email !== email);
+      meta.connected = true; meta.email = email || meta.email; store.save(meta);
+      set({ email: meta.email });
+      const found = await api.find();
+      fileId = found ? found.id : null;
+      if (!found) {
+        if (changedAccount && !isPristine()) return ask('newAccount');
+        meta.version = null;
+        return upload();
+      }
+      if (!changedAccount && meta.version === found.version) return dirty() ? upload() : set({ status: 'saved', savedAt: Date.now() });
+      const remote = await readRemote(found.id);
+      if (text(remote.data) === text(readLocal())) { remember(found.version); return set({ status: 'saved', savedAt: Date.now() }) }
+      if (isPristine() || (!changedAccount && meta.version != null && !dirty())) {
+        applyRemote(remote.data); remember(found.version);
+        return set({ status: 'saved', savedAt: Date.now() });
+      }
+      pendingRemote = { data: remote.data, version: found.version };
+      ask(changedAccount ? 'otherAccount' : 'both', remote);
+    } catch (e) { fail(e) }
+  }
+  async function flush() {
+    if (busy) { again = true; return }
+    if (!['saved', 'saving', 'offline'].includes(view.status) || !dirty()) { if (view.status === 'offline') set({ status: 'saved' }); return }
+    busy = true;
+    set({ status: 'saving' });
+    try {
+      if (fileId) {
+        const now = await api.meta(fileId);
+        if (!now) { fileId = null; meta.version = null }
+        else if (now.version !== meta.version) {
+          const remote = await readRemote(fileId);
+          pendingRemote = { data: remote.data, version: now.version };
+          return ask('both', remote);
+        }
+      }
+      await upload();
+    } catch (e) { fail(e) }
+    finally { busy = false; if (again) { again = false; flush() } }
+  }
+  function schedule() {
+    if (!['saved', 'saving', 'offline'].includes(view.status) || !dirty()) return;
+    clearTimeout(timer);
+    timer = setTimeout(flush, delay);
+  }
+  /* Picks up changes made on another device when this tab regains focus. */
+  async function refresh() {
+    if (view.status !== 'saved' || !fileId || busy || dirty()) return;
+    try {
+      const now = await api.meta(fileId);
+      if (now && now.version !== meta.version) {
+        const remote = await readRemote(fileId);
+        if (dirty()) { pendingRemote = { data: remote.data, version: now.version }; return ask('both', remote) }
+        applyRemote(remote.data); remember(now.version);
+        set({ savedAt: Date.now() });
+      }
+    } catch (e) { fail(e) }
+  }
+  async function resolve(pick) {
+    set({ status: 'saving', choice: null });
+    try {
+      if (pick === 'drive') { applyRemote(pendingRemote.data); remember(pendingRemote.version); pendingRemote = null; return set({ status: 'saved', savedAt: Date.now() }) }
+      if (pick === 'examples') applyRemote(null);
+      pendingRemote = null;
+      await upload();
+    } catch (e) { fail(e) }
+  }
+  function signOut() {
+    clearTimeout(timer);
+    meta.connected = false; store.save(meta); fileId = null;
+    set({ status: 'off', choice: null, message: '' });
+  }
+  function forget() { signOut(); meta.version = meta.base = meta.email = null; store.save(meta); set({ email: null }) }
+  return { connect, schedule, flush, refresh, resolve, signOut, forget, dirty: () => meta.connected && dirty(), view: () => ({ ...view }) };
+}
+/*SYNC-END*/
+
+/* ---------- presentation ---------- */
+const MODES = { cum: 'FD, cumulative (reinvestment)', qpay: 'FD, quarterly payout', mpay: 'FD, monthly payout', rd: 'Recurring deposit', sav: 'Savings account' };
+const SHORT = { cum: 'Cumulative FD', qpay: 'Quarterly payout FD', mpay: 'Monthly payout FD', rd: 'RD', sav: 'Savings' };
+const QN = ['Apr–Jun', 'Jul–Sep', 'Oct–Dec', 'Jan–Mar'], MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const inr = (x, dp = 2) => (x < 0 ? '-' : '') + RS + Math.abs(x).toLocaleString('en-IN', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const dash = x => Math.abs(x) < .005 ? '–' : inr(x);
+const fmtD = n => { const p = parts(n); return `${String(p.d).padStart(2, '0')} ${MON[p.m - 1]} ${p.y}` };
+const words = x => { x = +x; if (!x) return ''; if (x >= 1e7) return +(x / 1e7).toFixed(2) + ' crore'; if (x >= 1e5) return +(x / 1e5).toFixed(2) + ' lakh'; if (x >= 1e3) return +(x / 1e3).toFixed(2) + ' thousand'; return '' };
+const todayDn = () => { const t = new Date(); return Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) / DAY };
+let nextId = 1;
+const newId = () => 'd' + Date.now().toString(36) + (nextId++);
+
+const examples = () => [
+  { id: newId(), name: 'Example: 2-year FD', bank: 'Bank A', mode: 'cum', amt: 500000, rate: 7, start: '2026-06-15', ty: 2, tm: 0, td: 0, basis: 'calendar', dc: '365', round: 'paise', shortSimple: true },
+  { id: newId(), name: 'Example: income FD', bank: 'Bank A', mode: 'qpay', amt: 800000, rate: 6.75, start: '2026-04-01', ty: 3, tm: 0, td: 0, basis: 'calendar', dc: '365', round: 'paise', shortSimple: true },
+  { id: newId(), name: 'Example: monthly RD', bank: 'Bank B', mode: 'rd', amt: 10000, rate: 6.5, start: '2026-01-10', ty: 1, tm: 0, td: 0, basis: 'calendar', dc: '365', round: 'paise', shortSimple: true },
+  { id: newId(), name: 'Example: savings', bank: 'Bank B', mode: 'sav', amt: 200000, rate: 3, start: '2026-04-01', end: '2027-03-31', basis: 'calendar', dc: '365', round: 'paise', shortSimple: true, tx: [{ date: '2026-08-05', amt: 150000 }, { date: '2026-12-20', amt: -100000 }] }
+];
+const defaultTax = () => ({ fy: null, age: 'below60', regime: 'new', slab: 30, pan: true, basis: 'accrual' });
+let S = { deps: examples(), sel: null, tab: 'ledger', view: 'quarter', dayMonth: null, tax: defaultTax(), close: {}, rules: {} };
+try { const raw = localStorage.getItem('byaj-ledger'); if (raw) S = { ...S, ...JSON.parse(raw) } } catch (e) {}
+if (['ledger', 'tax', 'rules'].includes(location.hash.slice(1))) S.tab = location.hash.slice(1);
+if (!S.deps.find(d => d.id === S.sel)) S.sel = S.deps[0] ? S.deps[0].id : null;
+let sync = null;
+const save = () => { try { localStorage.setItem('byaj-ledger', JSON.stringify(S)) } catch (e) {} if (sync) sync.schedule() };
+const cur = () => S.deps.find(d => d.id === S.sel);
+/* A year with no rules of its own uses the nearest earlier year's, so edits carry forward until changed. */
+const rulesSource = fy => Object.keys(S.rules).map(Number).filter(y => y <= fy).sort((a, b) => b - a)[0];
+const rulesFor = fy => { const y = rulesSource(fy); return y == null ? DEFAULT_RULES : S.rules[y] };
+const ownRules = fy => S.rules[fy] || (S.rules[fy] = JSON.parse(JSON.stringify(rulesFor(fy))));
+const activeFy = () => { if (!fyOptions(validItems()).includes(+S.tax.fy)) S.tax.fy = fyOf(todayDn()); return +S.tax.fy };
+const pctText = x => +(+x).toFixed(2) + '%';
+
+function problem(d) {
+  if (!d.start || isNaN(dn(d.start))) return 'Enter a start date.';
+  if (!(+d.amt > 0)) return d.mode === 'rd' ? 'Enter the monthly instalment.' : d.mode === 'sav' ? 'Enter the opening balance.' : 'Enter the deposit amount.';
+  if (!(+d.rate >= 0 && +d.rate <= 30)) return 'Enter an interest rate between 0 and 30%.';
+  if (d.mode === 'sav' && (!d.end || isNaN(dn(d.end)))) return 'Enter an end date.';
+  const days = endOf(d) - dn(d.start);
+  if (!(days > 0)) return d.mode === 'sav' ? 'End date must be on or after the start date.' : 'Enter a tenor of at least one day.';
+  if (days > 366 * 30) return 'Tenor is limited to 30 years.';
+  return null;
+}
+const validItems = () => S.deps.filter(d => !problem(d)).map(dep => ({ dep, sim: simulate(dep) }));
+
+function renderList() {
+  $('deplist').innerHTML = S.deps.length ? S.deps.map(d => {
+    const bad = problem(d);
+    return `<button class="dep" data-pick="${d.id}" aria-current="${d.id === S.sel}"><b>${esc(d.name || 'Untitled')}</b><span>${+d.amt ? inr(+d.amt, 0) : ''}${d.mode === 'rd' ? '/mo' : ''}</span>
+      <small>${bad ? 'Needs attention' : `${esc(d.bank || 'No bank')} · ${SHORT[d.mode]} · ${+d.rate}%`}</small></button>`;
+  }).join('') : '<p class="hint">No deposits yet. Add your first FD, RD or savings account.</p>';
+}
+
+function field(id, label, value, type = 'text', extra = '') { return `<label for="f-${id}">${label}<input id="f-${id}" data-f="${id}" type="${type}" value="${esc(value)}" ${extra}></label>` }
+function pick(id, label, value, opts, attr = 'data-f', pre = 'f-') { return `<label for="${pre}${id}">${label}<select id="${pre}${id}" ${attr}="${id}">${Object.entries(opts).map(([k, v]) => `<option value="${k}" ${String(value) === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>` }
+
+function renderEditor() {
+  const d = cur(), el = $('editor');
+  el.hidden = !d;
+  if (!d) return;
+  const amtLabel = d.mode === 'rd' ? 'Monthly instalment (₹)' : d.mode === 'sav' ? 'Opening balance (₹)' : 'Deposit amount (₹)';
+  el.innerHTML = `<div class="row"><h2>Deposit details</h2><button class="link danger" id="del">Delete</button></div>
+    <div class="fields">${field('name', 'Name', d.name)}${field('bank', 'Bank (groups TDS)', d.bank)}</div>
+    ${pick('mode', 'Type', d.mode, MODES)}
+    <div class="fields">
+      <label for="f-amt">${amtLabel}<input id="f-amt" data-f="amt" type="number" min="0" step="1000" value="${esc(d.amt)}"><span class="hint" id="amt-words">${words(d.amt)}</span></label>
+      ${field('rate', 'Interest rate (% a year)', d.rate, 'number', 'min="0" max="30" step="0.05"')}
+    </div>
+    ${field('start', 'Start date', d.start, 'date')}
+    ${d.mode === 'sav' ? field('end', 'Calculate up to', d.end, 'date') + `
+      <div class="tight"><h3>Deposits and withdrawals</h3><span class="hint">Use a minus sign for a withdrawal.</span>
+      ${(d.tx || []).map((t, i) => `<div class="txrow"><input aria-label="Date" id="tx-d-${i}" type="date" data-tx="${i}" data-k="date" value="${esc(t.date)}"><input aria-label="Amount" id="tx-a-${i}" type="number" step="1000" data-tx="${i}" data-k="amt" value="${esc(t.amt)}"><button data-txdel="${i}" aria-label="Remove entry">×</button></div>`).join('')}
+      <button id="txadd">+ Add entry</button></div>` : `
+      <div class="fields three">${field('ty', 'Years', d.ty, 'number', 'min="0"')}${field('tm', 'Months', d.tm, 'number', 'min="0"')}${field('td', 'Days', d.td, 'number', 'min="0"')}</div>`}
+    <details ${S.openMethod ? 'open' : ''} id="method"><summary>Match your bank's method</summary><div>
+      ${pick('basis', 'Interest credited on', d.basis, { calendar: 'Calendar quarter/month ends', anniv: 'Every 3 months (or 1) from start date' })}
+      ${pick('dc', 'Days in a year', d.dc, { 365: 'Always 365', actual: '366 in leap years' })}
+      ${pick('round', 'Round each credit to', d.round, { paise: 'Nearest paisa', rupee: 'Nearest rupee' })}
+      ${d.mode === 'cum' ? `<label style="display:flex;gap:8px;align-items:center" for="f-shortSimple"><input style="width:auto" id="f-shortSimple" data-f="shortSimple" type="checkbox" ${d.shortSimple !== false ? 'checked' : ''}>Simple interest if under 180 days</label>` : ''}
+    </div></details>`;
+}
+
+function periodTable(id, rows, firstHead, labelFn, payout, showAdded) {
+  const sum = k => rows.reduce((t, g) => t + g[k], 0);
+  return `<div class="scroll"><table id="${id}"><thead><tr><th>${firstHead}</th><th>Days</th><th>Opening balance</th>${showAdded ? '<th>Added / withdrawn</th>' : ''}<th>Interest earned</th><th>${payout ? 'Interest paid out' : 'Interest credited'}</th><th>Closing balance</th></tr></thead><tbody>
+    ${rows.map(g => `<tr><td>${labelFn(g)}</td><td>${g.days}</td><td>${inr(g.open)}</td>${showAdded ? `<td>${dash(g.added)}</td>` : ''}<td>${inr(g.acc)}</td><td>${dash(g.credit)}</td><td>${inr(g.close)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td><td>${sum('days')}</td><td></td>${showAdded ? `<td>${dash(sum('added'))}</td>` : ''}<td>${inr(sum('acc'))}</td><td>${inr(sum('credit'))}</td><td></td></tr></tfoot></table></div>`;
+}
+
+function renderLedger() {
+  const d = cur(), el = $('results');
+  if (!d) { el.innerHTML = '<section class="sheet"><h2>Add a deposit to see its ledger</h2><p class="hint">Enter an FD, RD or savings account and the interest schedule appears here.</p></section>'; return }
+  const bad = problem(d);
+  if (bad) { el.innerHTML = `<section class="sheet"><h2>${esc(d.name || 'This deposit')}</h2><div class="note">${esc(bad)}</div></section>`; return }
+  const s = simulate(d), payout = d.mode === 'qpay' || d.mode === 'mpay', tb = textbook(d, s), showAdded = d.mode === 'rd' || d.mode === 'sav';
+  const R = rulesFor(S.tax.fy || fyOf(todayDn())), slab = +S.tax.slab, after = s.total * (1 - slab / 100 * (1 + R.cess / 100));
+  const notes = [];
+  if (s.simple) notes.push(['', `Under 180 days, so this uses simple interest paid at maturity, as most banks do.`]);
+  if (s.overdrawn) notes.push(['', 'A withdrawal is larger than the balance at that date. The balance is held at zero from there.']);
+  if (d.mode === 'mpay') notes.push(['', `Monthly payouts use a discounted rate of ${s.rate.toFixed(4)}% (rate ÷ (1 + rate/1200)) because you receive money earlier. Banks pay a fixed monthly sum, so their monthly figure can differ by a few rupees from this day-count figure.`]);
+  let body = '';
+  if (S.view === 'quarter') body = periodTable('t-view', group(s.rows, n => fyOf(n) * 10 + qOf(n)), 'Financial quarter', g => `Q${qOf(g.from)} ${fyLabel(fyOf(g.from))}<small>${QN[qOf(g.from) - 1]} · ${fmtD(g.from)} to ${fmtD(g.to)}</small>`, payout, showAdded);
+  if (S.view === 'month') body = periodTable('t-view', group(s.rows, n => { const p = parts(n); return p.y * 100 + p.m }), 'Month', g => { const p = parts(g.from); return `<button class="link" data-month="${p.y * 100 + p.m}">${MON[p.m - 1]} ${p.y}</button>` }, payout, showAdded) + '<span class="hint">Select a month to see its daily interest.</span>';
+  if (S.view === 'year') body = periodTable('t-view', group(s.rows, fyOf), 'Financial year', g => `${fyLabel(fyOf(g.from))}<small>${fmtD(g.from)} to ${fmtD(g.to)}</small>`, payout, showAdded);
+  if (S.view === 'day') {
+    const months = [...new Set(s.rows.map(x => { const p = parts(x.n); return p.y * 100 + p.m }))];
+    if (!months.includes(S.dayMonth)) S.dayMonth = months[0];
+    const i = months.indexOf(S.dayMonth), rows = s.rows.filter(x => { const p = parts(x.n); return p.y * 100 + p.m === S.dayMonth });
+    body = `<div class="row"><button id="mprev" ${i ? '' : 'disabled'}>← Previous</button><label for="daym" style="flex:1 1 150px;max-width:220px">Month<select id="daym">${months.map(m => `<option value="${m}" ${m === S.dayMonth ? 'selected' : ''}>${MON[m % 100 - 1]} ${Math.floor(m / 100)}</option>`).join('')}</select></label><button id="mnext" ${i < months.length - 1 ? '' : 'disabled'}>Next →</button></div>
+    <div class="scroll"><table id="t-view"><thead><tr><th>Date</th><th>Balance earning interest</th><th>Interest for the day</th><th>Accrued, not yet credited</th><th>${payout ? 'Paid out' : 'Credited'}</th><th>Closing balance</th></tr></thead><tbody>
+    ${rows.map(x => `<tr class="${x.credit ? 'credit' : ''}"><td>${fmtD(x.n)}${x.added ? `<small>${x.added > 0 ? 'Added' : 'Withdrawn'} ${inr(Math.abs(x.added), 0)}</small>` : ''}</td><td>${inr(x.base)}</td><td>${inr(x.acc)}</td><td>${dash(x.pend)}</td><td>${dash(x.credit)}</td><td>${inr(x.close)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Month total</td><td></td><td>${inr(rows.reduce((t, x) => t + x.acc, 0))}</td><td></td><td>${inr(rows.reduce((t, x) => t + x.credit, 0))}</td><td></td></tr></tfoot></table></div>`;
+  }
+  const first = s.rows[0], denom = d.dc === 'actual' && isLeap(parts(first.n).y) ? 366 : 365;
+  const diff = tb == null ? null : s.total - tb;
+  const howCredit = s.simple ? 'All interest is paid at maturity with no compounding.' : payout ? `Interest is paid out to you ${d.mode === 'mpay' ? 'each month' : 'each quarter'} and the principal stays the same.` : `Interest is added to the balance ${d.basis === 'calendar' ? 'at each quarter end, so it is in your account on 1 Jul, 1 Oct, 1 Jan and 1 Apr' : 'every 3 months from the start date'}, and earns interest from then on.`;
+  const earlyAllowed = d.mode !== 'sav';
+  let early = '';
+  if (earlyAllowed) {
+    const c = S.close[d.id] || {}, cd = c.date || iso(addMonths(s.start, Math.max(1, Math.round(s.days / 61)))), held = c.held != null ? c.held : d.rate, pen = c.pen != null ? c.pen : 1;
+    const cn = dn(cd), okDate = cn > s.start && cn < s.end;
+    let res = '<div class="note">Choose a closure date between the start and maturity dates.</div>';
+    if (okDate) {
+      const e = simulate({ ...d, rate: Math.max(+held - +pen, 0), closeEnd: cn });
+      const fullToDate = s.rows.filter(x => x.n < cn).reduce((t, x) => t + x.acc, 0);
+      res = `<div class="tiles"><div class="tile"><span>Interest if closed early</span><b>${inr(e.total)}</b><small>at ${Math.max(+held - +pen, 0).toFixed(2)}% for ${e.days} days</small></div><div class="tile"><span>Interest lost to date</span><b>${inr(Math.max(fullToDate - e.total, 0))}</b><small>against ${inr(fullToDate)} accrued at the booked rate</small></div><div class="tile"><span>Interest given up overall</span><b>${inr(Math.max(s.total - e.total, 0))}</b><small>against holding to maturity</small></div></div>`;
+    }
+    early = `<details><summary>What if you close this early?</summary><div>
+      <div class="fields">${`<label for="c-date">Closure date<input id="c-date" type="date" data-c="date" value="${esc(cd)}"></label><label for="c-held">Bank's rate for the period held (%)<input id="c-held" type="number" step="0.05" data-c="held" value="${esc(held)}"></label><label for="c-pen">Penalty (%)<input id="c-pen" type="number" step="0.25" data-c="pen" value="${esc(pen)}"></label>`}</div>
+      ${res}<span class="hint">Banks use the rate for the period the money actually stayed, which is often below your booked rate. Check that rate on your bank's rate card.</span></div></details>`;
+  }
+  el.innerHTML = `<section class="stack">
+    <div class="row"><div><h2>${esc(d.name || 'Untitled')}</h2><span class="hint">${MODES[d.mode]} · ${fmtD(s.start)} to ${fmtD(d.mode === 'sav' ? s.end - 1 : s.end)} · ${s.days} days</span></div></div>
+    <div class="tiles">
+      <div class="tile"><span>${d.mode === 'rd' ? 'Total instalments' : d.mode === 'sav' ? 'Net money added' : 'Amount invested'}</span><b>${inr(s.invested, 0)}</b></div>
+      <div class="tile"><span>Total interest</span><b>${inr(s.total)}</b></div>
+      <div class="tile"><span>${d.mode === 'sav' ? 'Closing balance' : 'Maturity amount'}</span><b>${inr(s.maturity)}</b>${payout ? '<small>principal only; interest was paid out</small>' : ''}</div>
+      <div class="tile"><span>Yield per year</span><b>${s.xirr == null ? '–' : s.xirr.toFixed(2) + '%'}</b><small>effective, on your dated cash flows</small></div>
+      <div class="tile"><span>Interest after tax</span><b>${inr(after)}</b><small>at ${pctText(slab)} slab + ${pctText(R.cess)} cess. <button class="link" data-tab="tax">Change</button></small></div>
+    </div>
+    ${notes.map(n => `<div class="note">${n[1]}</div>`).join('')}
+    <section class="sheet">
+      <div class="row"><div class="seg" role="tablist" aria-label="Breakdown">${[['quarter', 'Quarter-wise'], ['month', 'Month-wise'], ['day', 'Day-wise'], ['year', 'Year-wise']].map(([k, v]) => `<button role="tab" data-view="${k}" aria-selected="${S.view === k}">${v}</button>`).join('')}</div><button data-copy="t-view">Copy for Excel</button></div>
+      ${body}
+    </section>
+    ${early ? `<section class="sheet">${early}</section>` : ''}
+    <section class="sheet"><h3>How this figure is worked out</h3><div class="prose">
+      <p><strong>Day 1:</strong> ${inr(first.base)} × ${(+s.rate).toFixed(s.rate === +d.rate ? 2 : 4)}% × 1 ÷ ${denom} = ${inr(first.base * s.rate / 100 / denom)}. The start date counts and the maturity date does not.</p>
+      <p>${howCredit}</p>
+      ${tb != null ? `<p><strong>Check against the shortcut formula:</strong> online calculators give ${inr(tb)}. This ledger differs by ${inr(diff)} because it counts actual days in each quarter. If your bank receipt differs, try the settings under "Match your bank's method".</p>` : '<p>Savings interest follows the daily closing balance, as RBI requires, and is credited quarterly. Banks with tiered rates pay more than one rate; this uses one rate.</p>'}
+    </div></section></section>`;
+}
+
+function fyOptions(items) {
+  const set = new Set([fyOf(todayDn())]);
+  for (const { sim } of items) { for (const x of sim.rows) set.add(fyOf(x.n)); for (const [d] of sim.receipts) set.add(fyOf(d)) }
+  return [...set].sort((a, b) => a - b);
+}
+
+function renderTax() {
+  const t = S.tax, items = validItems(), fys = fyOptions(items);
+  if (!fys.includes(+t.fy)) t.fy = fyOf(todayDn());
+  const fy = +t.fy, R = rulesFor(fy), c = taxCalc(items, fy, t, R), today = todayDn(), estimatedTds = c.tds;
+  const senior = t.age === 'senior';
+  t.income = t.income || {};
+  const inc = t.income[fy] = t.income[fy] || { payments: [] };
+  const hasIncome = ['salary', 'rent', 'biz', 'other', 'stcg', 'ltcg'].some(k => n0(inc[k]) > 0);
+  if (inc.bankTds !== '' && inc.bankTds != null) c.tds = n0(inc.bankTds);
+  let full = null;
+  if (hasIncome) {
+    full = fullTax(inc, t.regime, t.age, c.interest, c.deduction, R);
+    c.tax = Math.max(full.total - fullTax(inc, t.regime, t.age, 0, 0, R).total, 0);
+    c.effective = c.interest ? c.tax / c.interest : 0;
+    t.slab = +(full.top * 100).toFixed(2);
+  }
+  c.net = c.tax - c.tds;
+  const totalTax = full ? full.total : c.tax, otherTds = n0(inc.tdsSalary) + n0(inc.tdsOther), allTds = c.tds + otherTds;
+  const afterTds = Math.max(totalTax - allTds, 0), required = afterTds >= +R.advanceMin && !(senior && !(n0(inc.biz) > 0));
+  const plan = advancePlan(required ? afterTds : 0, inc.payments, fy, today, R);
+  const safeText = R.instalments.filter(x => +x.safe < +x.pct).map(x => `${pctText(x.safe)} by ${x.d} ${MON[x.m - 1]}`).join(' and ');
+  const slabChoices = [...new Set([...R.newSlabs, ...R.oldSlabs].map(s => +s.rate).concat(+t.slab))].sort((a, b) => a - b);
+  const paidAll = (inc.payments || []).reduce((s, p) => s + n0(p.amt), 0), balance = Math.max(afterTds - paidAll, 0);
+  const lines = items.map(({ dep, sim }) => ({ dep, q: quarters(sim, fy, t.basis) })).filter(l => l.q.some(v => v > .004));
+  const qt = [0, 1, 2, 3].map(i => lines.reduce((s, l) => s + l.q[i], 0));
+  const qTax = qt.map(v => v * c.effective);
+  const STATE = { met: '<span class="pill ok">Paid on time</span>', within: '<span class="pill ok">Short, no interest</span>', missed: '<span class="pill stamp">Missed</span>', next: '<span class="pill stamp">Next due</span>', later: '<span class="pill">Upcoming</span>' };
+  const advRows = plan.rows.map(r => `<tr><td>${fmtD(r.date)}</td><td>${r.pct}%</td><td>${inr(r.required, 0)}</td><td>${inr(r.paid, 0)}</td><td>${r.toPay > .5 ? inr(Math.ceil(r.toPay), 0) : '–'}</td><td>${r.interest ? inr(r.interest, 0) : '–'}</td><td>${STATE[r.state]}</td></tr>`).join('');
+  const nextPay = plan.rows.find(r => r.toPay > .5);
+  let action;
+  if (!required) action = afterTds > 0
+    ? `<h3>No advance tax needed. Pay ${inr(Math.ceil(balance), 0)} before you file your return.</h3><p class="hint">${senior && afterTds >= +R.advanceMin ? 'You are 60 or above with no business income, so advance tax does not apply.' : `Tax left after TDS is below ${inr(+R.advanceMin, 0)}, so advance tax does not apply.`}</p>`
+    : `<h3>Nothing more to pay. TDS covers your estimated tax.</h3>`;
+  else if (balance <= .5) action = `<h3>You have paid enough for ${fyLabel(fy)}.</h3>`;
+  else if (nextPay) action = `<h3>Pay ${inr(Math.ceil(nextPay.toPay), 0)} by ${fmtD(nextPay.date)} to avoid further interest.</h3><p class="hint">Then keep to the "Pay this amount" column below. The last date to finish is ${fmtD(plan.rows[3].date)}.</p>`;
+  else if (!plan.over) action = `<h3>Pay ${inr(Math.ceil(balance), 0)} by ${fmtD(plan.yearEnd)}.</h3><p class="hint">Payments made by this date still count as advance tax for the year, and stop the monthly interest that starts in April.</p>`;
+  else action = `<h3>Pay ${inr(Math.ceil(balance), 0)} now, before you file your return.</h3><p class="hint">The financial year has ended, so this is paid as self-assessment tax.</p>`;
+  const interestNotes = [];
+  if (required && plan.locked) interestNotes.push(`Missed instalments have already added about ${inr(plan.locked, 0)} of interest. Paying now cannot remove it. Pay it with your final tax.`);
+  if (required && plan.over && plan.running) interestNotes.push(`Less than ${pctText(R.yearEndPct)} of the tax was paid by ${fmtD(plan.yearEnd)}, so about ${inr(plan.monthly, 0)} of interest is added per month until you pay. About ${inr(plan.running, 0)} so far.`);
+  const mon = (k, label, hint = '') => `<label for="i-${k}">${label}<input id="i-${k}" type="number" min="0" step="1000" data-i="${k}" value="${esc(inc[k] == null ? '' : inc[k])}" placeholder="0">${hint ? `<span class="hint">${hint}</span>` : ''}</label>`;
+  const creditOn = [Date.UTC(fy, 6, 1), Date.UTC(fy, 9, 1), Date.UTC(fy + 1, 0, 1), Date.UTC(fy + 1, 3, 1)].map(x => x / DAY);
+  const qFrom = [Date.UTC(fy, 3, 1), Date.UTC(fy, 6, 1), Date.UTC(fy, 9, 1), Date.UTC(fy + 1, 0, 1)].map(x => x / DAY);
+  let running = 0;
+  const addRows = qt.map((v, i) => { running += v; return `<tr><td>Q${i + 1} ${QN[i]}<small>${fmtD(qFrom[i])} to ${fmtD(creditOn[i] - 1)}</small></td><td>${t.basis === 'accrual' ? fmtD(creditOn[i]) : 'Received in this quarter'}</td><td>${inr(v)}</td><td>${inr(running)}</td><td>${inr(qTax[i])}</td></tr>` }).join('');
+  const qHead = i => `Q${i + 1} ${QN[i]}<small style="font-weight:400">${i < 3 ? fy : fy + 1}</small>`;
+  $('taxpage').innerHTML = `
+    <section class="sheet"><div class="row"><h2>Your tax position</h2><span class="hint">${rulesSource(fy) == null ? 'Using built-in rates.' : `Using your rates from ${fyLabel(rulesSource(fy))}.`} <button class="link" data-tab="rules">Change in Settings</button></span></div>
+      ${ruleProblems(R).length ? '<div class="note">Some values in Settings need fixing, so these figures may be wrong. <button class="link" data-tab="rules">Open Settings</button></div>' : ''}
+      <div class="fields">
+        ${pick('fy', 'Financial year', fy, Object.fromEntries(fys.map(y => [y, fyLabel(y)])), 'data-t', 't-')}
+        ${pick('age', 'Age', t.age, { below60: 'Below 60', senior: '60 or above' }, 'data-t', 't-')}
+        ${pick('regime', 'Tax regime', t.regime, { new: 'New regime', old: 'Old regime' }, 'data-t', 't-')}
+        ${(s => hasIncome ? s.replace('<select', '<select disabled') : s)(pick('slab', hasIncome ? 'Top slab (from your income)' : 'Your top slab', t.slab, Object.fromEntries(slabChoices.map(x => [x, pctText(x)])), 'data-t', 't-'))}
+        ${pick('basis', 'Report interest', t.basis, { accrual: 'As it accrues each year', receipt: 'When received' }, 'data-t', 't-')}
+        ${pick('pan', 'PAN with banks', t.pan ? 'yes' : 'no', { yes: `Yes (${pctText(R.tdsPan)} TDS)`, no: `No (${pctText(R.tdsNoPan)} TDS)` }, 'data-t', 't-')}
+      </div>
+    </section>
+    <section class="sheet"><div><h2>Your income and tax paid, ${fyLabel(fy)}</h2><span class="hint">Enter full-year figures. Interest from your deposits is added automatically.</span></div>
+      <h3>Income</h3>
+      <div class="fields">
+        ${mon('salary', 'Gross salary', 'Standard deduction is applied for you')}
+        ${mon('rent', 'Rent income', 'After the 30% deduction and home loan interest')}
+        ${mon('biz', 'Business or freelance profit')}
+        ${mon('other', 'Other income at slab rates', 'Dividends, interest not listed as a deposit, F&amp;O profit')}
+        ${mon('stcg', 'Short-term equity gains', `Taxed at ${pctText(R.stcgRate)}`)}
+        ${mon('ltcg', 'Long-term equity gains', `Taxed at ${pctText(R.ltcgRate)} above ${inr(+R.ltcgExempt, 0)}`)}
+        ${t.regime === 'old' ? mon('oldDed', 'Old regime deductions', '80C, 80D, HRA and so on') : ''}
+      </div>
+      <h3>Tax already covered</h3>
+      <div class="fields">
+        ${mon('tdsSalary', 'TDS on salary, full year', 'Include what your employer will deduct until March')}
+        ${mon('tdsOther', 'Other TDS or TCS, full year')}
+        ${mon('bankTds', 'Bank TDS on deposits, full year', `Blank uses the estimate of ${inr(estimatedTds, 0)}`)}
+      </div>
+      <div class="tight"><h3>Advance tax you have paid</h3>
+        ${(inc.payments || []).map((p, i) => `<div class="txrow"><input aria-label="Payment date" id="p-d-${i}" type="date" data-p="${i}" data-k="date" value="${esc(p.date)}"><input aria-label="Amount paid" id="p-a-${i}" type="number" min="0" step="1000" data-p="${i}" data-k="amt" value="${esc(p.amt)}"><button data-pdel="${i}" aria-label="Remove payment">×</button></div>`).join('')}
+        <button id="padd" style="width:fit-content">+ Add payment</button>
+      </div>
+    </section>
+    <section class="sheet"><div class="row"><h2>What to pay and by when</h2><button data-copy="t-adv">Copy for Excel</button></div>
+      <div class="note stamp tight">${action}</div>
+      ${interestNotes.map(n => `<div class="note">${n}</div>`).join('')}
+      <div class="tiles">
+        <div class="tile"><span>Tax for the year</span><b>${inr(totalTax, 0)}</b><small>${full ? `on ${inr(full.taxable, 0)} taxable income` : 'on deposit interest only'}</small></div>
+        <div class="tile"><span>TDS and TCS</span><b>${inr(allTds, 0)}</b></div>
+        <div class="tile"><span>Advance tax paid</span><b>${inr(paidAll, 0)}</b></div>
+        <div class="tile"><span>${totalTax - allTds - paidAll < 0 ? 'Refund expected' : 'Still to pay'}</span><b>${inr(totalTax - allTds - paidAll < 0 ? allTds + paidAll - totalTax : balance, 0)}</b><small>plus any interest shown here</small></div>
+      </div>
+      ${required ? `<div class="scroll"><table id="t-adv"><thead><tr><th>Due date</th><th>Share of tax</th><th>Total due by then</th><th>Paid by then</th><th>Pay this amount</th><th>Interest if short</th><th>Status</th></tr></thead><tbody>${advRows}</tbody></table></div>` : ''}
+      ${full ? `<span class="hint">For comparison: ${inr(fullTax(inc, 'new', t.age, c.interest, 0, R).total, 0)} in the new regime, ${inr(fullTax(inc, 'old', t.age, c.interest, t.regime === 'old' ? c.deduction : 0, R).total, 0)} in the old regime${t.regime === 'new' ? ' before deductions (switch regime to enter them)' : ''}.</span>` : '<span class="hint">Add your income above to get the tax on your whole income. Until then this covers deposit interest only.</span>'}
+      <div class="prose"><p>Late payment costs interest of ${pctText(R.lateRate)} a month, not a separate fine. A missed instalment costs ${[...R.instalments].map(x => `${x.months} month${+x.months === 1 ? '' : 's'} for ${MON[x.m - 1]}`).join(', ')}, on the shortfall.${safeText ? ` There is no interest if you have paid ${safeText}.` : ''} If under ${pctText(R.yearEndPct)} is paid by 31 March, another ${pctText(R.lateRate)} a month runs from April until you pay. Pay through e-Pay Tax on the income tax portal and choose Advance Tax.</p></div>
+    </section>
+    <div class="tiles">
+      <div class="tile"><span>Interest in ${fyLabel(fy)}</span><b>${inr(c.interest)}</b></div>
+      <div class="tile"><span>Tax on this interest</span><b>${inr(c.tax)}</b><small>${pctText(t.slab)} + ${pctText(R.cess)} cess${c.deduction ? `, after ${inr(c.deduction, 0)} deduction` : ''}</small></div>
+      <div class="tile"><span>TDS banks should deduct</span><b>${inr(c.tds)}</b><small>estimate, per bank</small></div>
+      <div class="tile"><span>${c.net >= 0 ? 'Left for you to pay' : 'Excess TDS to claim back'}</span><b>${inr(Math.abs(c.net))}</b><small>${c.net >= 0 ? 'tax minus TDS' : 'via your income tax return'}</small></div>
+    </div>
+    ${t.basis === 'receipt' ? '<div class="note">Banks report cumulative FD interest each year in your AIS, even when you receive it at maturity. Filing only when received can create a mismatch and bunches income into one year.</div>' : ''}
+    <section class="sheet"><div class="row"><h2>Interest to add to your taxes, ${fyLabel(fy)}</h2><button data-copy="t-add">Copy for Excel</button></div>
+      <div class="scroll"><table id="t-add"><thead><tr><th>Quarter</th><th>Credited on</th><th>Interest to add</th><th>Running total</th><th>Tax on it</th></tr></thead><tbody>${addRows}</tbody>
+      <tfoot><tr><td>Total for ${fyLabel(fy)}</td><td></td><td>${inr(c.interest)}</td><td></td><td>${inr(c.tax)}</td></tr>
+      <tr><td>Less estimated TDS</td><td></td><td></td><td></td><td>${inr(c.tds)}</td></tr>
+      <tr><td>${c.net >= 0 ? 'Tax pending on this interest' : 'Excess TDS on this interest'}</td><td></td><td></td><td></td><td>${inr(Math.abs(c.net))}</td></tr></tfoot></table></div>
+      <div class="prose"><p>Jan–Mar interest is credited on ${fmtD(creditOn[3])}, but it was earned in ${fyLabel(fy)}, so it is counted here and not next year. Replace the estimated TDS with the actual figure in your Form 26AS before you pay.</p></div>
+    </section>
+    <section class="sheet"><div class="row"><h2>Interest by deposit and quarter</h2><button data-copy="t-matrix">Copy for Excel</button></div>
+      ${lines.length ? `<div class="scroll"><table id="t-matrix"><thead><tr><th>Deposit</th>${[0, 1, 2, 3].map(i => `<th>${qHead(i)}</th>`).join('')}<th>FY total</th></tr></thead><tbody>
+        ${lines.map(l => `<tr><td>${esc(l.dep.name || 'Untitled')}<small>${esc(l.dep.bank || 'No bank')} · ${SHORT[l.dep.mode]}</small></td>${l.q.map(v => `<td>${dash(v)}</td>`).join('')}<td>${inr(l.q.reduce((a, b) => a + b, 0))}</td></tr>`).join('')}
+        </tbody><tfoot><tr><td>Total interest</td>${qt.map(v => `<td>${inr(v)}</td>`).join('')}<td>${inr(c.interest)}</td></tr>
+        <tr><td>Tax to set aside</td>${qTax.map(v => `<td>${inr(v)}</td>`).join('')}<td>${inr(c.tax)}</td></tr></tfoot></table></div>` : `<p class="hint">No interest falls in ${fyLabel(fy)}. Choose another year or add a deposit.</p>`}
+    </section>
+    <section class="sheet"><div class="row"><h2>TDS by bank</h2><button data-copy="t-tds">Copy for Excel</button></div>
+      ${c.bankRows.length ? `<div class="scroll"><table id="t-tds"><thead><tr><th>Bank</th><th>FD and RD interest</th><th>Limit</th><th>Crosses limit in</th><th>Estimated TDS</th></tr></thead><tbody>
+      ${c.bankRows.map(b => `<tr><td>${esc(b.name)}<small>${b.deps} deposit${b.deps > 1 ? 's' : ''}</small></td><td>${inr(b.total)}</td><td>${inr(senior ? +R.tdsLimitSenior : +R.tdsLimit, 0)}</td><td>${b.cross ? `<span class="pill stamp">Q${b.cross} ${QN[b.cross - 1]}</span>` : '<span class="pill ok">Stays below</span>'}</td><td>${dash(b.tds)}</td></tr>`).join('')}
+      </tbody></table></div>` : '<p class="hint">No FD or RD interest in this year.</p>'}
+      <div class="prose"><p>Banks add up FD and RD interest across branches, so the limit applies per bank. Savings interest has no TDS but is still taxable. Staying below the limit means no TDS, not no tax.</p></div>
+    </section>
+    <section class="sheet"><h3>What this estimate leaves out</h3><div class="prose"><ul>
+      <li><strong>Please verify the rates.</strong> This year uses a ${inr(+R.tdsLimit, 0)} TDS limit (${inr(+R.tdsLimitSenior, 0)} for 60+), and in the old regime a ${inr(+R.dedOld, 0)} savings interest deduction (${inr(+R.dedOldSenior, 0)} on all deposit interest for 60+). You can change these and every other rate in Settings.</li>
+      <li><strong>Simplifications.</strong> With income entered, this uses ${fyLabel(fy)} slabs, standard deduction, rebate, surcharge and ${pctText(R.cess)} cess from Settings. It does not set unused basic exemption against equity gains, or handle losses, other capital gains or presumptive schemes. It also expects gains and dividends in instalments from June, while the law allows them to be paid in the instalment after they arise, so it can ask for more, earlier, than is required. It assumes the interest rules above continue for ${fyLabel(fy)}.</li>
+      <li><strong>Form 121 replaces Forms 15G and 15H</strong> from FY 2026-27 for declaring nil tax to a bank. It is tied to nil estimated tax on your total income, not to the interest being small, and it is given to each bank separately.</li>
+      <li><strong>Check against your AIS and Form 26AS.</strong> Use those figures when you file. This page is an estimate for planning and is not tax advice.</li>
+    </ul></div></section>`;
+}
+
+function ruleProblems(R) {
+  const out = [], rising = (rows, k) => rows.every((x, i) => !i || +x[k] > +rows[i - 1][k]);
+  const ok = x => x !== '' && x != null && +x >= 0;
+  for (const [key, name] of [['newSlabs', 'New regime'], ['oldSlabs', 'Old regime']]) {
+    const limits = R[key].slice(0, -1);
+    if (!limits.every(s => ok(s.upto)) || !rising(limits, 'upto')) out.push(`${name} slab limits must rise from row to row.`);
+    if (!R[key].every(s => ok(s.rate) && +s.rate <= 100)) out.push(`${name} slab rates must be between 0 and 100%.`);
+  }
+  if (R.oldSlabs[1] && R.oldSlabs[1].upto != null && +R.oldSeniorExempt >= +R.oldSlabs[1].upto) out.push('The exemption limit for age 60 or above must be below the second old regime slab limit.');
+  if (!rising(R.surcharge, 'over')) out.push('Surcharge income levels must rise from row to row.');
+  if (!rising(R.instalments, 'pct') || +R.instalments[R.instalments.length - 1].pct !== 100) out.push('Instalment shares must rise and end at 100%.');
+  if (R.instalments.some(x => +x.safe > +x.pct)) out.push('The no-interest share cannot be higher than the instalment share.');
+  if (R.instalments.some(x => !(+x.d >= 1 && +x.d <= 31))) out.push('Instalment days must be between 1 and 31.');
+  return out;
+}
+
+function renderRules() {
+  const fy = activeFy(), R = rulesFor(fy), src = rulesSource(fy), fys = fyOptions(validItems());
+  const rid = p => 'r-' + p.replace(/\./g, '-');
+  const num = (path, label, value, hint = '', step = 1000) => `<label for="${rid(path)}">${label}<input id="${rid(path)}" type="number" min="0" step="${step}" data-r="${path}" value="${esc(value)}">${hint ? `<span class="hint">${hint}</span>` : ''}</label>`;
+  const pc = (path, label, value, hint = '') => num(path, label + ' (%)', value, hint, .5);
+  const cell = (path, value, label, step) => `<input id="${rid(path)}" aria-label="${label}" type="number" min="0" step="${step}" data-r="${path}" value="${esc(value)}">`;
+  const slabs = (key, title, extra = '') => `<div class="tight"><div class="row"><h3>${title}</h3><button data-radd="${key}">+ Add slab</button></div>
+    <div class="scroll"><table><thead><tr><th>Income up to (₹)</th><th>Rate (%)</th><th></th></tr></thead><tbody>
+    ${R[key].map((s, i) => `<tr><td>${s.upto == null ? 'Above that' : cell(`${key}.${i}.upto`, s.upto, 'Income up to', 50000)}</td><td>${cell(`${key}.${i}.rate`, s.rate, 'Rate', .5)}</td><td>${s.upto == null || R[key].length < 3 ? '' : `<button data-rdel="${key}.${i}" aria-label="Remove slab">×</button>`}</td></tr>`).join('')}
+    </tbody></table></div>${extra}</div>`;
+  const problems = ruleProblems(R);
+  $('rulespage').innerHTML = `
+    <section class="sheet"><div class="row"><div><h2>Settings</h2><span class="hint">Rates and limits used for the selected financial year. Changes apply straight away.</span></div>
+      <button id="rreset" ${S.rules[fy] ? '' : 'disabled'}>Remove my changes for ${fyLabel(fy)}</button></div>
+      <div class="fields"><label for="r-fy">Financial year<select id="r-fy" data-rfy="1">${fys.map(y => `<option value="${y}" ${y === fy ? 'selected' : ''}>${fyLabel(y)}</option>`).join('')}</select></label></div>
+      <span class="hint">${S.rules[fy] ? `${fyLabel(fy)} has its own values. Later years use them until you change those years.` : src != null ? `Using values from ${fyLabel(src)}. Editing anything here saves a separate copy for ${fyLabel(fy)}.` : `Using the built-in values, which are written for FY 2026-27. Check them if you pick another year.`}</span>
+      ${problems.map(p => `<div class="note">${esc(p)}</div>`).join('')}
+    </section>
+    <section class="sheet"><h2>Tax slabs</h2><div class="fields" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))">
+      ${slabs('newSlabs', 'New regime')}
+      ${slabs('oldSlabs', 'Old regime', num('oldSeniorExempt', 'Exemption limit, age 60 or above (₹)', R.oldSeniorExempt, 'Replaces the first old regime limit'))}
+    </div></section>
+    <section class="sheet"><h2>Deductions, rebate and cess</h2><div class="fields">
+      ${num('stdNew', 'Standard deduction, new regime (₹)', R.stdNew)}${num('stdOld', 'Standard deduction, old regime (₹)', R.stdOld)}
+      ${num('rebateNewLimit', 'Rebate income limit, new regime (₹)', R.rebateNewLimit, 'No tax on slab income up to this')}
+      ${num('rebateOldLimit', 'Rebate income limit, old regime (₹)', R.rebateOldLimit)}${num('rebateOldMax', 'Maximum rebate, old regime (₹)', R.rebateOldMax, '', 500)}
+      ${num('dedOld', 'Savings interest deduction, old regime (₹)', R.dedOld)}${num('dedOldSenior', 'Deposit interest deduction, age 60 or above (₹)', R.dedOldSenior)}
+      ${pc('cess', 'Cess', R.cess)}
+    </div></section>
+    <section class="sheet"><h2>Equity gains and surcharge</h2><div class="fields">
+      ${pc('stcgRate', 'Short-term equity gains', R.stcgRate)}${pc('ltcgRate', 'Long-term equity gains', R.ltcgRate)}${num('ltcgExempt', 'Long-term gains exempt up to (₹)', R.ltcgExempt, '', 5000)}
+      ${pc('surchargeCapNew', 'Highest surcharge, new regime', R.surchargeCapNew)}${pc('surchargeCapGains', 'Highest surcharge on equity gains', R.surchargeCapGains)}
+    </div>
+    <div class="row"><h3>Surcharge levels</h3><button data-radd="surcharge">+ Add level</button></div>
+    <div class="scroll"><table><thead><tr><th>Total income over (₹)</th><th>Surcharge (%)</th><th></th></tr></thead><tbody>
+    ${R.surcharge.map((s, i) => `<tr><td>${cell(`surcharge.${i}.over`, s.over, 'Income over', 100000)}</td><td>${cell(`surcharge.${i}.rate`, s.rate, 'Surcharge', .5)}</td><td><button data-rdel="surcharge.${i}" aria-label="Remove level">×</button></td></tr>`).join('')}
+    </tbody></table></div></section>
+    <section class="sheet"><h2>TDS on deposits</h2><div class="fields">
+      ${pc('tdsPan', 'TDS rate with PAN', R.tdsPan)}${pc('tdsNoPan', 'TDS rate without PAN', R.tdsNoPan)}
+      ${num('tdsLimit', 'Limit per bank (₹)', R.tdsLimit)}${num('tdsLimitSenior', 'Limit per bank, age 60 or above (₹)', R.tdsLimitSenior)}
+    </div></section>
+    <section class="sheet"><h2>Advance tax</h2><div class="fields">
+      ${num('advanceMin', 'Applies when tax after TDS reaches (₹)', R.advanceMin)}${pc('lateRate', 'Late payment interest per month', R.lateRate)}${pc('yearEndPct', 'Share to pay by 31 March', R.yearEndPct, 'Below this, monthly interest runs from April')}
+    </div>
+    <div class="scroll"><table><thead><tr><th>Due month</th><th>Day</th><th>Total share due (%)</th><th>No interest if paid (%)</th><th>Months of interest</th></tr></thead><tbody>
+    ${R.instalments.map((x, i) => `<tr><td><select id="${rid(`instalments.${i}.m`)}" aria-label="Due month" data-r="instalments.${i}.m">${MON.map((n, k) => `<option value="${k + 1}" ${+x.m === k + 1 ? 'selected' : ''}>${n}</option>`).join('')}</select></td><td>${cell(`instalments.${i}.d`, x.d, 'Day', 1)}</td><td>${cell(`instalments.${i}.pct`, x.pct, 'Total share due', 1)}</td><td>${cell(`instalments.${i}.safe`, x.safe, 'No interest if paid', 1)}</td><td>${cell(`instalments.${i}.months`, x.months, 'Months of interest', 1)}</td></tr>`).join('')}
+    </tbody></table></div></section>
+    <section class="sheet"><h2>Your data</h2>
+      <span class="hint">Copy all your deposits, income, payments and rates as text, then paste it into another copy of this page. It holds your financial details, so keep it private.</span>
+      <label for="backup-box">Backup text<textarea id="backup-box" placeholder="Paste backup text here to restore it"></textarea></label>
+      <div class="row" style="justify-content:flex-start"><button id="backup-copy">Copy my data</button><button id="backup-restore">Restore from this text</button></div>
+      <div id="backup-msg" class="hint" role="status"></div>
+    </section>`;
+}
+
+/* What gets saved and backed up: real data only, without view state or empty placeholders. */
+function payload() {
+  const income = {};
+  for (const [fy, v] of Object.entries(S.tax.income || {})) {
+    const entries = Object.entries(v).filter(([k, x]) => k === 'payments' ? x && x.length : x !== '' && x != null);
+    if (entries.length) income[fy] = Object.fromEntries(entries);
+  }
+  const { fy, income: _, ...tax } = S.tax;
+  return { deps: S.deps, close: S.close, rules: S.rules, tax: { ...tax, income } };
+}
+function isPristine() {
+  const bare = list => JSON.stringify(list.map(({ id, ...d }) => d)), p = payload();
+  return bare(p.deps) === bare(examples()) && !Object.keys(p.rules).length && !Object.keys(p.tax.income).length && !Object.keys(p.close).length;
+}
+function applyData(data) {
+  const d = data || { deps: examples(), close: {}, rules: {}, tax: defaultTax() };
+  const seen = S.tax.fy;
+  S.deps = d.deps; S.close = d.close || {}; S.rules = d.rules || {};
+  S.tax = { ...defaultTax(), ...d.tax, fy: seen, income: (d.tax && d.tax.income) || {} };
+  S.sel = S.deps[0] ? S.deps[0].id : null;
+  renderEditor(); render();
+}
+function validBackup(d) {
+  return !!d && Array.isArray(d.deps) && d.deps.every(x => x && typeof x.id === 'string' && MODES[x.mode]) && (!d.rules || typeof d.rules === 'object');
+}
+
+function render() {
+  document.querySelectorAll('nav [data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === S.tab));
+  $('main').hidden = S.tab !== 'ledger';
+  $('taxpage').hidden = S.tab !== 'tax';
+  $('rulespage').hidden = S.tab !== 'rules';
+  renderList();
+  if (S.tab === 'ledger') renderLedger(); else if (S.tab === 'tax') renderTax(); else renderRules();
+  save();
+}
+function refocus(id) { const e = id && $(id); if (e) { e.focus(); try { const v = e.value; if (e.type !== 'number' && e.type !== 'date') e.setSelectionRange(v.length, v.length) } catch (x) {} } }
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.tab) { S.tab = t.dataset.tab; render(); scrollTo(0, 0); return }
+  if (t.dataset.view) { S.view = t.dataset.view; renderLedger(); save(); return }
+  if (t.dataset.pick) { S.sel = t.dataset.pick; renderEditor(); render(); return }
+  if (t.dataset.month) { S.view = 'day'; S.dayMonth = +t.dataset.month; renderLedger(); save(); return }
+  if (t.dataset.copy) { copyTable(t); return }
+  if (t.dataset.txdel != null) { cur().tx.splice(+t.dataset.txdel, 1); renderEditor(); render(); return }
+  if (t.id === 'add') {
+    const y = todayDn(), d = { id: newId(), name: 'New deposit', bank: '', mode: 'cum', amt: 100000, rate: 7, start: iso(y), ty: 1, tm: 0, td: 0, end: iso(addMonths(y, 12)), tx: [], basis: 'calendar', dc: '365', round: 'paise', shortSimple: true };
+    S.deps.push(d); S.sel = d.id; S.tab = 'ledger'; renderEditor(); render(); refocus('f-name'); return;
+  }
+  if (t.id === 'sync-in') { signIn(); return }
+  if (t.id === 'sync-out') { sync.signOut(); token = null; return }
+  if (t.id === 'sync-forget') {
+    if (!t.dataset.armed) { t.dataset.armed = '1'; t.textContent = 'Confirm: remove from this browser'; return }
+    sync.forget(); token = null; applyData(null);
+    try { localStorage.removeItem('byaj-ledger') } catch (x) {}
+    return;
+  }
+  if (t.dataset.choice) { sync.resolve(t.dataset.choice); return }
+  if (t.id === 'backup-copy') {
+    const box = $('backup-box'), msg = $('backup-msg');
+    box.value = JSON.stringify(payload());
+    const fallback = () => { box.select(); msg.textContent = 'Selected. Press Ctrl+C to copy it.' };
+    try { navigator.clipboard.writeText(box.value).then(() => { msg.textContent = 'Copied. Paste it into the other copy of this page.' }, fallback) } catch (x) { fallback() }
+    return;
+  }
+  if (t.id === 'backup-restore') {
+    const msg = $('backup-msg');
+    let data;
+    try { data = JSON.parse($('backup-box').value) } catch (x) { data = null }
+    if (!validBackup(data)) { msg.textContent = 'That text is not a backup from this page. Copy it again and paste the whole text.'; return }
+    if (!t.dataset.armed) { t.dataset.armed = '1'; t.textContent = `Confirm: replace everything with ${data.deps.length} deposit${data.deps.length === 1 ? '' : 's'}`; return }
+    applyData(data);
+    return;
+  }
+  if (t.dataset.radd) {
+    const R = ownRules(activeFy()), rows = R[t.dataset.radd];
+    if (t.dataset.radd === 'surcharge') { const l = rows[rows.length - 1]; rows.push(l ? { over: l.over * 2, rate: l.rate } : { over: 5000000, rate: 10 }) }
+    else { const p = rows[rows.length - 2]; rows.splice(rows.length - 1, 0, { upto: (p ? +p.upto : 0) + 100000, rate: p ? p.rate : 0 }) }
+    renderRules(); save(); return;
+  }
+  if (t.dataset.rdel) {
+    const [key, i] = t.dataset.rdel.split('.'), rows = ownRules(activeFy())[key];
+    rows.splice(+i, 1); renderRules(); save(); return;
+  }
+  if (t.id === 'rreset') {
+    if (!t.dataset.armed) { t.dataset.armed = '1'; t.textContent = 'Confirm: remove my changes'; return }
+    delete S.rules[activeFy()]; renderRules(); save(); return;
+  }
+  if (t.id === 'padd' || t.dataset.pdel != null) {
+    const inc = S.tax.income[S.tax.fy];
+    inc.payments = inc.payments || [];
+    if (t.id === 'padd') inc.payments.push({ date: iso(todayDn()), amt: '' }); else inc.payments.splice(+t.dataset.pdel, 1);
+    renderTax(); save(); return;
+  }
+  if (t.id === 'txadd') { const d = cur(); (d.tx = d.tx || []).push({ date: d.start, amt: 10000 }); renderEditor(); render(); return }
+  if (t.id === 'del' || t.id === 'reset') {
+    if (!t.dataset.armed) { t.dataset.armed = '1'; t.textContent = t.id === 'del' ? 'Confirm delete' : 'Replace all deposits with examples?'; return }
+    if (t.id === 'del') { S.deps = S.deps.filter(d => d.id !== S.sel); S.sel = S.deps[0] ? S.deps[0].id : null }
+    else { S.deps = examples(); S.sel = S.deps[0].id; S.close = {}; t.removeAttribute('data-armed'); t.textContent = 'Restore examples' }
+    renderEditor(); render(); return;
+  }
+  if (t.id === 'mprev' || t.id === 'mnext') {
+    const opts = [...$('daym').options].map(o => +o.value), i = opts.indexOf(S.dayMonth) + (t.id === 'mprev' ? -1 : 1);
+    if (opts[i]) { S.dayMonth = opts[i]; renderLedger(); save(); refocus(t.id) } return;
+  }
+});
+function onField(e) {
+  const x = e.target, d = cur();
+  if (x.dataset.f && d) {
+    d[x.dataset.f] = x.type === 'checkbox' ? x.checked : x.value;
+    if (x.dataset.f === 'mode') {
+      if (d.mode === 'sav' && !d.end) d.end = iso(addMonths(dn(d.start), 12));
+      if (d.mode !== 'sav' && !(+d.ty || +d.tm || +d.td)) d.ty = 1;
+      renderEditor(); render(); refocus('f-mode'); return;
+    }
+    if (x.dataset.f === 'amt') $('amt-words').textContent = words(x.value);
+    render(); return;
+  }
+  if (x.dataset.tx != null && d) { d.tx[+x.dataset.tx][x.dataset.k] = x.value; render(); return }
+  if (x.dataset.c && d) {
+    (S.close[d.id] = S.close[d.id] || {})[x.dataset.c] = x.value;
+    const id = x.id; renderLedger(); save();
+    const det = $(id); if (det) { det.closest('details').open = true; refocus(id) } return;
+  }
+  if (x.dataset.rfy) { S.tax.fy = +x.value; renderRules(); save(); refocus('r-fy'); return }
+  if (x.dataset.r) {
+    const path = x.dataset.r.split('.'), last = path.pop(), id = x.id;
+    const target = path.reduce((o, k) => o[k], ownRules(activeFy()));
+    target[last] = x.value === '' ? '' : +x.value;
+    renderRules(); save(); refocus(id); return;
+  }
+  if (x.dataset.i || x.dataset.p != null) {
+    const inc = S.tax.income[S.tax.fy], id = x.id;
+    if (x.dataset.i) inc[x.dataset.i] = x.value; else inc.payments[+x.dataset.p][x.dataset.k] = x.value;
+    renderTax(); save(); refocus(id); return;
+  }
+  if (x.id === 'daym') { S.dayMonth = +x.value; renderLedger(); save(); refocus('daym'); return }
+  if (x.dataset.t) {
+    const k = x.dataset.t, t = S.tax;
+    if (k === 'pan') t.pan = x.value === 'yes';
+    else t[k] = ['fy', 'slab'].includes(k) ? +x.value : x.value;
+    const id = x.id; renderTax(); save(); refocus(id);
+  }
+}
+const onChangeOnly = x => x.tagName === 'SELECT' || x.dataset.c || x.dataset.t || x.dataset.i || x.dataset.r || x.dataset.p != null;
+document.addEventListener('input', e => { if (!onChangeOnly(e.target)) onField(e) });
+document.addEventListener('change', e => { if (onChangeOnly(e.target)) onField(e) });
+
+function copyTable(btn) {
+  const table = $(btn.dataset.copy); if (!table) return;
+  const tsv = [...table.rows].map(r => [...r.cells].map(c => c.innerText.replace(/\s*\n\s*/g, ' ').replace(/₹|,/g, '')).join('\t')).join('\n');
+  const done = msg => { const old = btn.dataset.label || btn.textContent; btn.dataset.label = old; btn.textContent = msg; setTimeout(() => btn.textContent = old, 2200) };
+  const fallback = () => { const rng = document.createRange(); rng.selectNode(table); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rng); done('Selected: press Ctrl+C') };
+  try { navigator.clipboard.writeText(tsv).then(() => done('Copied'), fallback) } catch (e) { fallback() }
+}
+
+/* Google sign-in. Only runs where a client ID is configured (the hosted copy); the access token stays in memory. */
+const CLIENT_ID = window.BYAJ_GOOGLE_CLIENT_ID, DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata', FILE_NAME = 'byaj-ledger.json';
+let token = null, tokenClient = null;
+
+function driveApi() {
+  const call = async (url, opts = {}) => {
+    const res = await fetch(url, { ...opts, headers: { Authorization: 'Bearer ' + token, ...(opts.headers || {}) } });
+    if (res.status === 404) return null;
+    if (!res.ok) throw { status: res.status };
+    return res.json();
+  };
+  const API = 'https://www.googleapis.com/drive/v3/files', UP = 'https://www.googleapis.com/upload/drive/v3/files';
+  return {
+    whoami: async () => { const r = await call('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)'); return r && r.user ? r.user.emailAddress : null },
+    find: async () => { const r = await call(`${API}?spaces=appDataFolder&orderBy=modifiedTime%20desc&pageSize=1&fields=files(id,version)&q=${encodeURIComponent(`name='${FILE_NAME}'`)}`); return r && r.files[0] || null },
+    meta: id => call(`${API}/${id}?fields=id,version`),
+    read: id => call(`${API}/${id}?alt=media`),
+    create: body => {
+      const b = 'byaj' + Date.now(), part = o => `Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(o)}\r\n`;
+      return call(`${UP}?uploadType=multipart&fields=id,version`, { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${b}` },
+        body: `--${b}\r\n${part({ name: FILE_NAME, parents: ['appDataFolder'] })}--${b}\r\n${part(body)}--${b}--` });
+    },
+    update: (id, body) => call(`${UP}/${id}?uploadType=media&fields=id,version`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  };
+}
+function renderSync(v) {
+  const el = $('sync'), when = v.savedAt ? new Date(v.savedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+  const who = v.email ? ` as ${esc(v.email)}` : '';
+  const signIn = label => `<button class="primary" id="sync-in">${label}</button>`;
+  const out = `<button id="sync-out">Sign out</button>`, forget = `<button class="link danger" id="sync-forget">Sign out and remove from this browser</button>`;
+  const VIEW = {
+    off: [`<b>Save to Google Drive</b><br><span class="hint">Sign in to keep your data across devices. It goes to a private app folder in your own Drive.</span>`, signIn('Sign in with Google')],
+    signin: [`<b>Not connected to Drive</b><br><span class="hint">Sign in to load your latest data and keep saving.</span>`, signIn('Sign in with Google') + forget],
+    connecting: [`Connecting to Google Drive…`, ''],
+    saving: [`Saving to Google Drive…`, ''],
+    saved: [`<b>Saved to Google Drive${when ? ` at ${when}` : ''}</b><br><span class="hint">Signed in${who}. Changes save automatically.</span>`, out + forget],
+    offline: [`<b>Not saved yet</b><br><span class="hint">Google Drive cannot be reached. Your changes are on this device and will save when the connection returns.</span>`, out],
+    expired: [`<b>Sign in again to keep saving</b><br><span class="hint">Your Google session ended. Your changes are on this device and will save after you sign in.</span>`, signIn('Sign in again')],
+    error: [`<b>Could not save to Drive</b><br><span class="hint">${esc(v.message)}</span>`, signIn('Try again') + out],
+    unset: [`<b>Google sign-in is not set up yet</b><br><span class="hint">Add your client ID to config.js. Your data is saved only in this browser for now.</span>`, '']
+  };
+  if (v.status === 'choice') {
+    const c = v.choice, d = c.remote ? `Drive has ${c.remote.deposits} deposit${c.remote.deposits === 1 ? '' : 's'}${c.remote.savedAt ? `, saved ${new Date(c.remote.savedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}. ` : '';
+    const l = `This device has ${c.local.deposits}.`;
+    const head = { both: 'This device and Google Drive have different data', otherAccount: 'This device has data from another Google account', newAccount: 'This device has data from another Google account' }[c.kind];
+    const acts = c.kind === 'newAccount'
+      ? `<button class="primary" data-choice="examples">Start fresh in this account</button><button data-choice="local">Copy this device's data here</button>`
+      : `<button class="primary" data-choice="drive">Use the Drive copy</button><button data-choice="local">Replace Drive with this device's copy</button>`;
+    el.innerHTML = `<div style="min-width:0"><b>${head}</b><br><span class="hint">${d}${l} The copy you do not pick is replaced.</span></div><div class="acts">${acts}</div>`;
+  } else el.innerHTML = `<div style="min-width:0">${VIEW[v.status][0]}</div><div class="acts">${VIEW[v.status][1]}</div>`;
+  $('savehint').textContent = ['saved', 'saving'].includes(v.status) ? 'Saved to Google Drive.' : ['offline', 'expired', 'choice', 'error'].includes(v.status) ? 'Saved in this browser, waiting for Drive.' : 'Saved only in this browser.';
+}
+function signIn() {
+  if (!tokenClient) { renderSync({ status: 'error', message: 'Google sign-in could not load. Check your connection and reload the page.' }); return }
+  tokenClient.requestAccessToken();
+}
+function startGoogle() {
+  $('sync').hidden = false;
+  if (!CLIENT_ID) { renderSync({ status: 'unset' }); return }
+  const store = {
+    load: () => { try { return JSON.parse(localStorage.getItem('byaj-sync')) || {} } catch (e) { return {} } },
+    save: m => { try { localStorage.setItem('byaj-sync', JSON.stringify(m)) } catch (e) {} }
+  };
+  sync = createDriveSync({ api: driveApi(), readLocal: payload, applyRemote: applyData, isPristine, store, onState: renderSync });
+  renderSync(sync.view());
+  const ready = () => {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID, scope: DRIVE_SCOPE,
+      callback: r => {
+        if (r.error || !google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) { renderSync({ status: 'error', message: 'Drive permission was not given, so nothing was saved. Sign in and allow it to continue.' }); return }
+        token = r.access_token;
+        sync.connect();
+      },
+      error_callback: () => renderSync(sync.view())
+    });
+  };
+  if (window.google && google.accounts) ready();
+  else { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = ready; document.head.appendChild(s) }
+  addEventListener('focus', () => sync.refresh());
+  addEventListener('online', () => sync.flush());
+  addEventListener('beforeunload', e => { if (token && sync.dirty()) { sync.flush(); e.preventDefault(); e.returnValue = '' } });
+}
+
+renderEditor();
+render();
+if (CLIENT_ID !== undefined) startGoogle();
+</script>

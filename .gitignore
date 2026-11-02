@@ -1,0 +1,10 @@
+# This folder holds other work. Only the calculator belongs in this repository.
+/*
+!/.gitignore
+!/.github/
+!/README.md
+!/interest-calculator.html
+!/site/
+
+# Built by GitHub Actions from interest-calculator.html
+/site/index.html
