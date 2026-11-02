@@ -4,25 +4,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Instrument+Serif&display=swap">
 <style>
-/* Layout: soft glass cards floating on an aubergine wash. Deposits on the left, figures on the right. Dark by default, light by choice. */
+/* Layout: flat, quiet surfaces so the figures lead. Deposits on the left, figures on the right. Dark by default, light by choice.
+   Colour marks only what you can act on or must notice. Palette: deep blue #086288, steel #4D8DBA, sky #97D7FF, cream #FFEFC4. */
 :root {
-  --bg: #19121f; --glow1: #3a1f36; --glow2: #2b2149; --glow3: #38261f; --surface: rgba(44, 32, 53, .72); --field: #231a2b; --sunken: #2f2439; --ink: #f4ebf4; --muted: #bbacc0; --rule: #453650; --shadow: rgba(0, 0, 0, .28);
-  --accent: #d6aee8; --on-accent: #27142f; --stamp: #f6adc6; --stamp-bg: #4a2336; --warn: #eec066; --warn-bg: #3d2f10; --bad: #f7a0ad; color-scheme: dark;
+  --bg: #0d1a20; --surface: #13242c; --field: #0f1f26; --sunken: #1a2f39; --ink: #f1f4f5; --muted: #b4c4cc; --rule: #2c4450; --steel: #4D8DBA;
+  --accent: #97D7FF; --on-accent: #0d1a20; --stamp: #FFEFC4; --stamp-bg: #1d3542; --warn: #FFEFC4; --warn-bg: #33301f; --bad: #ffb9ad; color-scheme: dark;
   --display: "Instrument Serif", "Iowan Old Style", Georgia, serif; --body: "Figtree", "Segoe UI", system-ui, sans-serif;
 }
 :root[data-theme="light"] {
-  --bg: #f7eff3; --glow1: #f7d9e3; --glow2: #e3d9f6; --glow3: #fbe6d4; --surface: rgba(255, 255, 255, .74); --field: #fffafc; --sunken: #f1e6ef; --ink: #2e2036; --muted: #635669; --rule: #e0d0de; --shadow: rgba(92, 56, 110, .10);
-  --accent: #7b4a8c; --on-accent: #ffffff; --stamp: #a33f65; --stamp-bg: #fbe4ec; --warn: #855600; --warn-bg: #fbf0d9; --bad: #b0334a; color-scheme: light }
+  --bg: #f7f7f4; --surface: #ffffff; --field: #ffffff; --sunken: #eef0ee; --ink: #14242b; --muted: #4a5d67; --rule: #d7dcdc; --steel: #4D8DBA;
+  --accent: #086288; --on-accent: #ffffff; --stamp: #086288; --stamp-bg: #e6f2f9; --warn: #6f4d00; --warn-bg: #FFEFC4; --bad: #a32f26; color-scheme: light }
 * { box-sizing: border-box }
 [hidden] { display: none !important }
-body { background: radial-gradient(70vw 60vh at 8% -5%, var(--glow1), transparent 70%), radial-gradient(60vw 60vh at 100% 10%, var(--glow2), transparent 70%), radial-gradient(70vw 60vh at 50% 110%, var(--glow3), transparent 70%), var(--bg); background-attachment: fixed; color: var(--ink); font: 15px/1.5 var(--body); }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
 .wrap { max-width: 1320px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px }
 header { display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: end; justify-content: space-between }
 h1 { font: 400 3rem/1.05 var(--display); letter-spacing: -.01em; margin: 0 } h2 { font: 400 1.65rem/1.2 var(--display); margin: 0; text-wrap: balance } h3 { font: 600 .98rem/1.3 var(--body); margin: 0 }
 header p { margin: 4px 0 0; color: var(--muted); max-width: 62ch }
 nav, .seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--sunken); padding: 4px; border-radius: 22px; width: fit-content; max-width: 100% }
 button { font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--rule); background: var(--field); border-radius: 999px; padding: 6px 14px; transition: border-color .15s, background-color .15s }
-button:hover { border-color: var(--accent) }
+button:hover { border-color: var(--steel) }
 button:disabled { opacity: .55; cursor: default }
 .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
 button.copy { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 6px; color: var(--muted); background: transparent; border-color: transparent; font-size: .72rem; font-weight: 600 }
@@ -34,7 +35,7 @@ nav button[aria-selected="true"], .seg button[aria-selected="true"] { background
 .danger { color: var(--bad) }
 .cols { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 20px; align-items: start }
 .stack { display: grid; gap: 16px; min-width: 0 } .tight { display: grid; gap: 8px; min-width: 0 }
-.sheet { background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--rule); border-radius: 20px; padding: 20px; display: grid; gap: 14px; min-width: 0; box-shadow: 0 10px 30px var(--shadow) }
+.sheet { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 20px; display: grid; gap: 14px; min-width: 0 }
 .row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between }
 .dep { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; width: 100%; text-align: left; padding: 10px 14px; border-radius: 14px }
 .dep[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
@@ -43,15 +44,15 @@ nav button[aria-selected="true"], .seg button[aria-selected="true"] { background
 .fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)) }
 label { display: grid; gap: 3px; font-size: .84rem; font-weight: 500; color: var(--muted); align-content: start; min-width: 0 }
 textarea { font: 400 .85rem var(--body); color: var(--ink); background: var(--field); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; width: 100%; min-height: 90px; resize: vertical }
-#sync { background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--rule); border-radius: 16px; padding: 12px 18px }
+#sync { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 18px }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500 }
 input, select { font: 400 .95rem var(--body); color: var(--ink); background: var(--field); border: 1px solid var(--rule); border-radius: 10px; padding: 7px 10px; width: 100%; min-width: 0 }
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: .85 }
 .hint { font-size: .8rem; color: var(--muted); font-weight: 400 }
 details summary { cursor: pointer; font-weight: 500; color: var(--accent) } details > div { margin-top: 10px; display: grid; gap: 10px }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px }
-.tile { position: relative; background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--rule); border-radius: 16px; padding: 14px 16px; box-shadow: 0 6px 18px var(--shadow) } .tile span { display: block; font-size: .82rem; color: var(--muted); padding-right: 26px }
-.tile b { display: block; font: 400 1.75rem/1.25 var(--display); overflow-wrap: anywhere } .tile small { color: var(--muted); font-size: .78rem }
+.tile { position: relative; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px } .tile span { display: block; font-size: .82rem; color: var(--muted); padding-right: 26px }
+.tile b { display: block; font: 600 1.45rem/1.3 var(--body); font-variant-numeric: tabular-nums; overflow-wrap: anywhere } .tile small { color: var(--muted); font-size: .78rem }
 .scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 14px; max-height: 620px; overflow-y: auto }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .9rem }
 th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule) }
@@ -591,10 +592,14 @@ function renderLedger() {
     </div></section></section>`;
 }
 
-/* Every year from the earliest to the latest with a deposit or your own entries, with no gaps. */
-function fyOptions(items) {
-  const set = new Set([fyOf(todayDn()), ...(S.years || []).map(Number), ...Object.keys(S.tax.income || {}).map(Number)]);
-  for (const { sim } of items) { for (const x of [sim.rows[0], sim.rows[sim.rows.length - 1]]) if (x) set.add(fyOf(x.n)); for (const [d] of sim.receipts) set.add(fyOf(d)) }
+const yearHasEntries = y => {
+  const inc = (S.tax.income || {})[y] || {};
+  return !!(S.rules || {})[y] || Object.values(inc).some(v => Array.isArray(v) ? v.length : v !== '' && v != null);
+};
+/* The current and previous year, plus any year you added or entered something in, with no gaps. */
+function fyOptions() {
+  const now = fyOf(todayDn());
+  const set = new Set([now, now - 1, ...(S.years || []).map(Number), ...Object.keys(S.tax.income || {}).map(Number).filter(yearHasEntries), ...Object.keys(S.rules || {}).map(Number)]);
   const low = Math.min(...set), high = Math.max(...set), out = [];
   for (let y = low; y <= high; y++) out.push(y);
   return out;
@@ -632,6 +637,8 @@ function renderTax() {
   const slabChoices = [...new Set([...R.newSlabs, ...R.oldSlabs].map(s => +s.rate).concat(+shownSlab))].sort((a, b) => a - b);
   const prevInc = t.income[fy - 1] || {}, canCopyPrev = !hasIncome && COPY_YEAR_FIELDS.some(k => Array.isArray(prevInc[k]) ? prevInc[k].length : n0(prevInc[k]) > 0);
   const yearRows = fys.map(y => ({ y, f: yearFigures(y, items, t, today) }));
+  const hiddenYears = [...new Set(items.flatMap(({ sim }) => sim.rows.filter(x => x.acc > .004).map(x => fyOf(x.n))))].filter(y => !fys.includes(y)).sort((a, b) => a - b);
+  const nowFy = fyOf(today), canRemoveYear = fy !== nowFy && fy !== nowFy - 1 && (fy === fys[0] || fy === fys[fys.length - 1]) && !yearHasEntries(fy);
   const lines = items.map(({ dep, sim }) => ({ dep, sim, q: quarters(sim, fy, t.basis) })).filter(l => l.q.some(v => v > .004));
   const qt = [0, 1, 2, 3].map(i => lines.reduce((s, l) => s + l.q[i], 0));
   const qTax = qt.map(v => v * c.effective);
@@ -671,8 +678,8 @@ function renderTax() {
     <section class="sheet"><div class="row"><h2>Your tax position</h2><span class="hint">${rulesSource(fy) == null ? 'Using built-in rates.' : `Using your rates from ${fyLabel(rulesSource(fy))}.`} <button class="link" data-tab="rules">Change in Settings</button></span></div>
       <div class="tight"><h3>Financial year</h3>
         <div class="acts"><div class="seg" role="tablist" aria-label="Financial year">${fys.map(y => `<button role="tab" data-fy="${y}" aria-selected="${y === fy}">${fyLabel(y)}</button>`).join('')}</div>
-        <button data-addyear="prev">+ Earlier year</button><button data-addyear="next">+ Later year</button></div>
-        <span class="hint">Your deposits carry across every year until they mature or close. Income and tax paid are entered separately for each year.</span>
+        <button data-addyear="prev">+ Earlier year</button><button data-addyear="next">+ Later year</button>${canRemoveYear ? `<button class="link danger" id="remove-year">Remove ${fyLabel(fy)}</button>` : ''}</div>
+        <span class="hint">Your deposits carry across years until they mature or close. Income and tax paid are entered separately for each year.${hiddenYears.length ? ` Your deposits also earn interest in ${hiddenYears.map(fyLabel).join(', ')}; add a year to see it here.` : ''}</span>
       </div>
       ${ruleProblems(R).length ? '<div class="note">Some values in Settings need fixing, so these figures may be wrong. <button class="link" data-tab="rules">Open Settings</button></div>' : ''}
       <div class="fields">
@@ -887,6 +894,13 @@ document.addEventListener('click', e => {
   if (t.dataset.addyear) {
     const list = fyOptions(validItems()), y = t.dataset.addyear === 'prev' ? list[0] - 1 : list[list.length - 1] + 1;
     S.years = [...(S.years || []), y]; S.tax.fy = y; renderTax(); save(); return;
+  }
+  if (t.id === 'remove-year') {
+    const y = S.tax.fy, list = fyOptions();
+    S.years = (S.years || []).filter(v => +v !== y);
+    delete S.tax.income[y];
+    S.tax.fy = y === list[0] ? list[1] : list[list.length - 2];
+    renderTax(); save(); return;
   }
   if (t.id === 'copy-prev') {
     const from = S.tax.income[S.tax.fy - 1], to = S.tax.income[S.tax.fy];
