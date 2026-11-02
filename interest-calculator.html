@@ -250,7 +250,8 @@ function slabTax(inc, regime, age, R) {
 }
 function fullTax(inc, regime, age, interest, interestDed, R = DEFAULT_RULES) {
   const isNew = regime === 'new', std = Math.min(n0(inc.salary), isNew ? +R.stdNew : +R.stdOld);
-  const slabInc = Math.max(n0(inc.salary) - std + n0(inc.rent) + n0(inc.biz) + n0(inc.other) + n0(interest) - (isNew ? 0 : n0(inc.oldDed) + n0(interestDed)), 0);
+  const misc = (inc.misc || []).reduce((s, m) => s + n0(m.amt), 0);
+  const slabInc = Math.max(n0(inc.salary) - std + n0(inc.rent) + n0(inc.biz) + n0(inc.other) + misc + n0(interest) - (isNew ? 0 : n0(inc.oldDed) + n0(interestDed)), 0);
   const stcg = n0(inc.stcg), ltcg = n0(inc.ltcg), total = slabInc + stcg + ltcg;
   const special = stcg * R.stcgRate / 100 + Math.max(ltcg - R.ltcgExempt, 0) * R.ltcgRate / 100;
   const slabPart = i => {
@@ -577,7 +578,7 @@ function renderTax() {
   const senior = t.age === 'senior';
   t.income = t.income || {};
   const inc = t.income[fy] = t.income[fy] || { payments: [] };
-  const hasIncome = ['salary', 'rent', 'biz', 'other', 'stcg', 'ltcg'].some(k => n0(inc[k]) > 0);
+  const hasIncome = ['salary', 'rent', 'biz', 'other', 'stcg', 'ltcg'].some(k => n0(inc[k]) > 0) || (inc.misc || []).some(m => n0(m.amt) > 0);
   if (inc.bankTds !== '' && inc.bankTds != null) c.tds = n0(inc.bankTds);
   let full = null;
   if (hasIncome) {
@@ -638,6 +639,10 @@ function renderTax() {
         ${mon('stcg', 'Short-term equity gains', `Taxed at ${pctText(R.stcgRate)}`)}
         ${mon('ltcg', 'Long-term equity gains', `Taxed at ${pctText(R.ltcgRate)} above ${inr(+R.ltcgExempt, 0)}`)}
         ${t.regime === 'old' ? mon('oldDed', 'Old regime deductions', '80C, 80D, HRA and so on') : ''}
+      </div>
+      <div class="tight"><h3>Miscellaneous income</h3><span class="hint">Any other taxable amount, such as a gift above the limit or a one-off payment. Taxed at your slab rate.</span>
+        ${(inc.misc || []).map((m, i) => `<div class="txrow"><input aria-label="What this amount is" id="m-l-${i}" placeholder="What is this for?" data-m="${i}" data-k="label" value="${esc(m.label)}"><input aria-label="Amount" id="m-a-${i}" type="number" min="0" step="1000" placeholder="Amount" data-m="${i}" data-k="amt" value="${esc(m.amt)}"><button data-mdel="${i}" aria-label="Remove amount">×</button></div>`).join('')}
+        <button id="madd" style="width:fit-content">+ Add miscellaneous amount</button>
       </div>
       <h3>Tax already covered</h3>
       <div class="fields">
@@ -772,7 +777,7 @@ function renderRules() {
 function payload() {
   const income = {};
   for (const [fy, v] of Object.entries(S.tax.income || {})) {
-    const entries = Object.entries(v).filter(([k, x]) => k === 'payments' ? x && x.length : x !== '' && x != null);
+    const entries = Object.entries(v).filter(([k, x]) => Array.isArray(x) ? x.length : x !== '' && x != null);
     if (entries.length) income[fy] = Object.fromEntries(entries);
   }
   const { fy, income: _, ...tax } = S.tax;
@@ -818,10 +823,10 @@ document.addEventListener('click', e => {
     S.deps.push(d); S.sel = d.id; S.tab = 'ledger'; renderEditor(); render(); refocus('f-name'); return;
   }
   if (t.id === 'sync-in') { signIn(); return }
-  if (t.id === 'sync-out') { sync.signOut(); token = null; return }
+  if (t.id === 'sync-out') { sync.signOut(); dropToken(); return }
   if (t.id === 'sync-forget') {
     if (!t.dataset.armed) { t.dataset.armed = '1'; t.textContent = 'Confirm: remove from this browser'; return }
-    sync.forget(); token = null; applyData(null);
+    sync.forget(); dropToken(); applyData(null);
     try { localStorage.removeItem('byaj-ledger') } catch (x) {}
     return;
   }
@@ -855,6 +860,14 @@ document.addEventListener('click', e => {
   if (t.id === 'rreset') {
     if (!t.dataset.armed) { t.dataset.armed = '1'; t.textContent = 'Confirm: remove my changes'; return }
     delete S.rules[activeFy()]; renderRules(); save(); return;
+  }
+  if (t.id === 'madd' || t.dataset.mdel != null) {
+    const inc = S.tax.income[S.tax.fy];
+    inc.misc = inc.misc || [];
+    if (t.id === 'madd') inc.misc.push({ label: '', amt: '' }); else inc.misc.splice(+t.dataset.mdel, 1);
+    renderTax(); save();
+    if (t.id === 'madd') refocus(`m-l-${inc.misc.length - 1}`);
+    return;
   }
   if (t.id === 'padd' || t.dataset.pdel != null) {
     const inc = S.tax.income[S.tax.fy];
@@ -899,9 +912,11 @@ function onField(e) {
     target[last] = x.value === '' ? '' : +x.value;
     renderRules(); save(); refocus(id); return;
   }
-  if (x.dataset.i || x.dataset.p != null) {
+  if (x.dataset.i || x.dataset.p != null || x.dataset.m != null) {
     const inc = S.tax.income[S.tax.fy], id = x.id;
-    if (x.dataset.i) inc[x.dataset.i] = x.value; else inc.payments[+x.dataset.p][x.dataset.k] = x.value;
+    if (x.dataset.i) inc[x.dataset.i] = x.value;
+    else if (x.dataset.m != null) inc.misc[+x.dataset.m][x.dataset.k] = x.value;
+    else inc.payments[+x.dataset.p][x.dataset.k] = x.value;
     renderTax(); save(); refocus(id); return;
   }
   if (x.id === 'daym') { S.dayMonth = +x.value; renderLedger(); save(); refocus('daym'); return }
@@ -912,7 +927,7 @@ function onField(e) {
     const id = x.id; renderTax(); save(); refocus(id);
   }
 }
-const onChangeOnly = x => x.tagName === 'SELECT' || x.dataset.c || x.dataset.t || x.dataset.i || x.dataset.r || x.dataset.p != null;
+const onChangeOnly = x => x.tagName === 'SELECT' || x.dataset.c || x.dataset.t || x.dataset.i || x.dataset.r || x.dataset.p != null || x.dataset.m != null;
 document.addEventListener('input', e => { if (!onChangeOnly(e.target)) onField(e) });
 document.addEventListener('change', e => { if (onChangeOnly(e.target)) onField(e) });
 
@@ -924,14 +939,42 @@ function copyTable(btn) {
   try { navigator.clipboard.writeText(tsv).then(() => done('Copied'), fallback) } catch (e) { fallback() }
 }
 
-/* Google sign-in. Only runs where a client ID is configured (the hosted copy); the access token stays in memory. */
+/* Google sign-in. Only runs where a client ID is configured (the hosted copy).
+   Browser-only apps get no refresh token, so the short-lived access token is kept until it expires,
+   then renewed without a prompt on the next click or key press (Google requires a user action to open its window). */
 const CLIENT_ID = window.BYAJ_GOOGLE_CLIENT_ID, DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata', FILE_NAME = 'byaj-ledger.json';
-let token = null, tokenClient = null;
+const TOKEN_KEY = 'byaj-token', RENEW_MARGIN = 5 * 60 * 1000, RENEW_RETRY = 10 * 60 * 1000;
+let token = null, tokenExpiry = 0, tokenClient = null, silentAt = 0, silentPending = false;
+function keepToken(value, expiresIn) {
+  token = value; tokenExpiry = Date.now() + (+expiresIn || 3600) * 1000;
+  try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ value, expiry: tokenExpiry })) } catch (e) {}
+}
+function dropToken() {
+  token = null; tokenExpiry = 0;
+  try { localStorage.removeItem(TOKEN_KEY) } catch (e) {}
+}
+function restoreToken() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TOKEN_KEY));
+    if (saved && saved.expiry > Date.now() + 60000) { token = saved.value; tokenExpiry = saved.expiry; return true }
+    localStorage.removeItem(TOKEN_KEY);
+  } catch (e) {}
+  return false;
+}
+function renewSilently(e) {
+  if (!tokenClient || !sync || (e.target.closest && e.target.closest('#sync button'))) return;
+  const v = sync.view();
+  if (!v.email || silentPending || ['off', 'choice', 'connecting'].includes(v.status)) return;
+  if (tokenExpiry - Date.now() > RENEW_MARGIN || Date.now() - silentAt < RENEW_RETRY) return;
+  silentAt = Date.now(); silentPending = true;
+  tokenClient.requestAccessToken({ prompt: 'none', login_hint: v.email });
+}
 
 function driveApi() {
   const call = async (url, opts = {}) => {
     const res = await fetch(url, { ...opts, headers: { Authorization: 'Bearer ' + token, ...(opts.headers || {}) } });
     if (res.status === 404) return null;
+    if (res.status === 401) dropToken();
     if (!res.ok) throw { status: res.status };
     return res.json();
   };
@@ -956,12 +999,12 @@ function renderSync(v) {
   const out = `<button id="sync-out">Sign out</button>`, forget = `<button class="link danger" id="sync-forget">Sign out and remove from this browser</button>`;
   const VIEW = {
     off: [`<b>Save to Google Drive</b><br><span class="hint">Sign in to keep your data across devices. It goes to a private app folder in your own Drive.</span>`, signIn('Sign in with Google')],
-    signin: [`<b>Not connected to Drive</b><br><span class="hint">Sign in to load your latest data and keep saving.</span>`, signIn('Sign in with Google') + forget],
+    signin: [`<b>Reconnecting to Drive on your next click</b><br><span class="hint">A Google window may flash briefly. If you stay disconnected, sign in here.</span>`, signIn('Sign in with Google') + forget],
     connecting: [`Connecting to Google Drive…`, ''],
     saving: [`Saving to Google Drive…`, ''],
     saved: [`<b>Saved to Google Drive${when ? ` at ${when}` : ''}</b><br><span class="hint">Signed in${who}. Changes save automatically.</span>`, out + forget],
     offline: [`<b>Not saved yet</b><br><span class="hint">Google Drive cannot be reached. Your changes are on this device and will save when the connection returns.</span>`, out],
-    expired: [`<b>Sign in again to keep saving</b><br><span class="hint">Your Google session ended. Your changes are on this device and will save after you sign in.</span>`, signIn('Sign in again')],
+    expired: [`<b>Reconnecting to Drive on your next click</b><br><span class="hint">Your Google session ended. Your changes are on this device and will save once reconnected. If you stay disconnected, sign in here.</span>`, signIn('Sign in again')],
     error: [`<b>Could not save to Drive</b><br><span class="hint">${esc(v.message)}</span>`, signIn('Try again') + out],
     unset: [`<b>Google sign-in is not set up yet</b><br><span class="hint">Add your client ID to config.js. Your data is saved only in this browser for now.</span>`, '']
   };
@@ -993,13 +1036,23 @@ function startGoogle() {
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID, scope: DRIVE_SCOPE,
       callback: r => {
-        if (r.error || !google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) { renderSync({ status: 'error', message: 'Drive permission was not given, so nothing was saved. Sign in and allow it to continue.' }); return }
-        token = r.access_token;
+        const silent = silentPending;
+        silentPending = false;
+        if (r.error || !google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) {
+          if (silent) return renderSync(sync.view());   // the Sign in button stays available
+          renderSync({ status: 'error', message: 'Drive permission was not given, so nothing was saved. Sign in and allow it to continue.' });
+          return;
+        }
+        keepToken(r.access_token, r.expires_in);
+        if (['saved', 'saving', 'offline'].includes(sync.view().status)) { sync.flush(); return }
         sync.connect();
       },
-      error_callback: () => renderSync(sync.view())
+      error_callback: () => { silentPending = false; renderSync(sync.view()) }
     });
   };
+  addEventListener('click', renewSilently, true);
+  addEventListener('keydown', renewSilently, true);
+  if (sync.view().status === 'signin' && restoreToken()) sync.connect();
   if (window.google && google.accounts) ready();
   else { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = ready; document.head.appendChild(s) }
   addEventListener('focus', () => sync.refresh());
