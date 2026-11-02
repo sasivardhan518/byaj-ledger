@@ -4,18 +4,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Instrument+Serif&display=swap">
 <style>
-/* Layout: soft glass cards floating on a blush and lilac wash. Deposits on the left, figures on the right. Plum ink, rose for alerts. */
+/* Layout: soft glass cards floating on an aubergine wash. Deposits on the left, figures on the right. Dark by default, light by choice. */
 :root {
-  --bg: #f7eff3; --glow1: #f7d9e3; --glow2: #e3d9f6; --glow3: #fbe6d4; --surface: rgba(255, 255, 255, .74); --field: #fffafc; --sunken: #f1e6ef; --ink: #2e2036; --muted: #635669; --rule: #e0d0de; --shadow: rgba(92, 56, 110, .10);
-  --accent: #7b4a8c; --on-accent: #ffffff; --stamp: #a33f65; --stamp-bg: #fbe4ec; --warn: #855600; --warn-bg: #fbf0d9; --bad: #b0334a;
+  --bg: #19121f; --glow1: #3a1f36; --glow2: #2b2149; --glow3: #38261f; --surface: rgba(44, 32, 53, .72); --field: #231a2b; --sunken: #2f2439; --ink: #f4ebf4; --muted: #bbacc0; --rule: #453650; --shadow: rgba(0, 0, 0, .28);
+  --accent: #d6aee8; --on-accent: #27142f; --stamp: #f6adc6; --stamp-bg: #4a2336; --warn: #eec066; --warn-bg: #3d2f10; --bad: #f7a0ad; color-scheme: dark;
   --display: "Instrument Serif", "Iowan Old Style", Georgia, serif; --body: "Figtree", "Segoe UI", system-ui, sans-serif;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #19121f; --glow1: #3a1f36; --glow2: #2b2149; --glow3: #38261f; --surface: rgba(44, 32, 53, .72); --field: #231a2b; --sunken: #2f2439; --ink: #f4ebf4; --muted: #bbacc0; --rule: #453650; --shadow: rgba(0, 0, 0, .28);
-  --accent: #d6aee8; --on-accent: #27142f; --stamp: #f6adc6; --stamp-bg: #4a2336; --warn: #eec066; --warn-bg: #3d2f10; --bad: #f7a0ad; color-scheme: dark } }
-:root[data-theme="dark"] {
-  --bg: #19121f; --glow1: #3a1f36; --glow2: #2b2149; --glow3: #38261f; --surface: rgba(44, 32, 53, .72); --field: #231a2b; --sunken: #2f2439; --ink: #f4ebf4; --muted: #bbacc0; --rule: #453650; --shadow: rgba(0, 0, 0, .28);
-  --accent: #d6aee8; --on-accent: #27142f; --stamp: #f6adc6; --stamp-bg: #4a2336; --warn: #eec066; --warn-bg: #3d2f10; --bad: #f7a0ad; color-scheme: dark }
+:root[data-theme="light"] {
+  --bg: #f7eff3; --glow1: #f7d9e3; --glow2: #e3d9f6; --glow3: #fbe6d4; --surface: rgba(255, 255, 255, .74); --field: #fffafc; --sunken: #f1e6ef; --ink: #2e2036; --muted: #635669; --rule: #e0d0de; --shadow: rgba(92, 56, 110, .10);
+  --accent: #7b4a8c; --on-accent: #ffffff; --stamp: #a33f65; --stamp-bg: #fbe4ec; --warn: #855600; --warn-bg: #fbf0d9; --bad: #b0334a; color-scheme: light }
 * { box-sizing: border-box }
 [hidden] { display: none !important }
 body { background: radial-gradient(70vw 60vh at 8% -5%, var(--glow1), transparent 70%), radial-gradient(60vw 60vh at 100% 10%, var(--glow2), transparent 70%), radial-gradient(70vw 60vh at 50% 110%, var(--glow3), transparent 70%), var(--bg); background-attachment: fixed; color: var(--ink); font: 15px/1.5 var(--body); }
@@ -80,11 +77,14 @@ td small { display: block; color: var(--muted); font-size: .76rem }
       <h1>Byaj Ledger</h1>
       <p>Bank-style interest on FDs, RDs and savings accounts, by day, month and quarter, with a financial-year view for advance tax and TDS.</p>
     </div>
-    <nav role="tablist" aria-label="Main view">
-      <button role="tab" id="tab-ledger" data-tab="ledger">Deposit ledger</button>
-      <button role="tab" id="tab-tax" data-tab="tax">Quarterly tax view</button>
-      <button role="tab" id="tab-rules" data-tab="rules">Settings</button>
-    </nav>
+    <div class="acts">
+      <nav role="tablist" aria-label="Main view">
+        <button role="tab" id="tab-ledger" data-tab="ledger">Deposit ledger</button>
+        <button role="tab" id="tab-tax" data-tab="tax">Quarterly tax view</button>
+        <button role="tab" id="tab-rules" data-tab="rules">Settings</button>
+      </nav>
+      <button id="theme-toggle">Light theme</button>
+    </div>
   </header>
   <section id="sync" class="row" aria-live="polite" hidden></section>
   <div id="main" class="cols">
@@ -118,11 +118,17 @@ const fyOf = n => { const p = parts(n); return p.m >= 4 ? p.y : p.y - 1 };
 const qOf = n => { const m = parts(n).m; return m >= 4 ? Math.ceil((m - 3) / 3) : 4 };
 const fyLabel = y => `FY ${y}-${String((y + 1) % 100).padStart(2, '0')}`;
 
-function endOf(dep) {
-  if (dep.closeEnd != null) return dep.closeEnd;
+function naturalEnd(dep) {
   if (dep.mode === 'sav') return dn(dep.end) + 1;
   return addMonths(dn(dep.start), (+dep.ty || 0) * 12 + (+dep.tm || 0)) + (+dep.td || 0);
 }
+/* A deposit you really closed early stops on that date. A date on or after maturity changes nothing. */
+const closedEarly = dep => dep.mode !== 'sav' && !!dep.closedOn && dep.closedOn === String(dep.closedOn) && dn(dep.closedOn) < naturalEnd(dep);
+function endOf(dep) {
+  if (dep.closeEnd != null) return dep.closeEnd;
+  return closedEarly(dep) ? dn(dep.closedOn) : naturalEnd(dep);
+}
+const dealRate = dep => dep.closeEnd == null && closedEarly(dep) && dep.closedRate !== '' && dep.closedRate != null ? +dep.closedRate : +dep.rate;
 
 /* Every rate and limit the tax maths uses. Percentages are whole numbers; upto: null means "and above". */
 const DEFAULT_RULES = {
@@ -141,7 +147,7 @@ const DEFAULT_RULES = {
 /* Walks the deposit one day at a time, the way a core banking system accrues.
    Maturity day itself earns nothing: start date counts, end date does not. */
 function simulate(dep) {
-  const start = dn(dep.start), end = endOf(dep), days = end - start, r = +dep.rate, mode = dep.mode;
+  const start = dn(dep.start), end = endOf(dep), days = end - start, r = dealRate(dep), mode = dep.mode;
   const rate = mode === 'mpay' ? r / (1 + r / 1200) : r;   // monthly payout FDs use the discounted rate
   const simple = mode === 'cum' && days < 180 && dep.shortSimple !== false;
   const roundTo = dep.round === 'rupee' ? 1 : 100, round = x => Math.round(x * roundTo) / roundTo;
@@ -192,7 +198,7 @@ function xirr(flows) {
 
 /* The shortcut formula most online calculators use, shown so a bank figure can be reconciled. */
 function textbook(dep, s) {
-  const P = +dep.amt, r = +dep.rate, i = r / 400;
+  const P = +dep.amt, r = dealRate(dep), i = r / 400;
   if (dep.mode === 'cum') return s.simple ? P * r * s.days / 36500 : P * Math.pow(1 + i, 4 * s.days / 365) - P;
   if (dep.mode === 'qpay') return P * r * s.days / 36500;
   if (dep.mode === 'mpay') return P * s.rate * s.days / 36500;
@@ -304,12 +310,13 @@ function advancePlan(due, payments, fy, today, R = DEFAULT_RULES) {
 
 /*SYNC-START*/
 /* Keeps one JSON file in the user's hidden Drive app folder in step with this browser.
-   Never overwrites a newer Drive copy: if both sides changed, the person chooses. */
-function createDriveSync({ api, readLocal, applyRemote, isPristine, store, onState, delay = 1500, retry = 30000 }) {
+   While the page stays open, this device always wins and each pause in editing costs one upload.
+   Only when the page loads and both sides differ does the person choose. */
+function createDriveSync({ api, readLocal, applyRemote, isPristine, store, onState, delay = 2500, retry = 30000, refreshEvery = 300000 }) {
   const meta = Object.assign({ version: null, base: null, email: null, connected: false }, store.load());
   const text = x => JSON.stringify(x);
   const view = { status: meta.connected ? 'signin' : 'off', email: meta.email, savedAt: null, choice: null, message: '' };
-  let fileId = null, timer = null, busy = false, again = false;
+  let fileId = null, timer = null, busy = false, again = false, lastCheck = 0;
   const set = patch => { Object.assign(view, patch); onState({ ...view }) };
   const dirty = () => meta.base !== text(readLocal());
   const remember = version => { meta.version = version; meta.base = text(readLocal()); store.save(meta) };
@@ -326,7 +333,8 @@ function createDriveSync({ api, readLocal, applyRemote, isPristine, store, onSta
   };
   async function upload() {
     const sent = readLocal(), body = { schema: 1, savedAt: new Date().toISOString(), data: sent };
-    const res = fileId ? await api.update(fileId, body) : await api.create(body);
+    let res = fileId ? await api.update(fileId, body) : await api.create(body);
+    if (!res) { fileId = null; res = await api.create(body) }   // the Drive file was removed
     fileId = res.id || fileId;
     meta.version = res.version; meta.base = text(sent); store.save(meta);
     set({ status: 'saved', savedAt: Date.now(), message: '' });
@@ -334,11 +342,11 @@ function createDriveSync({ api, readLocal, applyRemote, isPristine, store, onSta
   }
   const ask = (kind, remote) => set({ status: 'choice', choice: { kind, remote: remote ? { savedAt: remote.savedAt, deposits: remote.data.deps.length } : null, local: { deposits: readLocal().deps.length } } });
   let pendingRemote = null;
-  async function connect() {
+  async function connect({ trusted = false } = {}) {
     clearTimeout(timer);
     set({ status: 'connecting', message: '', choice: null });
     try {
-      const email = await api.whoami();
+      const email = trusted && meta.email ? meta.email : await api.whoami();
       const changedAccount = !!(meta.email && email && meta.email !== email);
       meta.connected = true; meta.email = email || meta.email; store.save(meta);
       set({ email: meta.email });
@@ -361,22 +369,12 @@ function createDriveSync({ api, readLocal, applyRemote, isPristine, store, onSta
     } catch (e) { fail(e) }
   }
   async function flush() {
+    clearTimeout(timer);
     if (busy) { again = true; return }
     if (!['saved', 'saving', 'offline'].includes(view.status) || !dirty()) { if (view.status === 'offline') set({ status: 'saved' }); return }
     busy = true;
     set({ status: 'saving' });
-    try {
-      if (fileId) {
-        const now = await api.meta(fileId);
-        if (!now) { fileId = null; meta.version = null }
-        else if (now.version !== meta.version) {
-          const remote = await readRemote(fileId);
-          pendingRemote = { data: remote.data, version: now.version };
-          return ask('both', remote);
-        }
-      }
-      await upload();
-    } catch (e) { fail(e) }
+    try { await upload() } catch (e) { fail(e) }
     finally { busy = false; if (again) { again = false; flush() } }
   }
   function schedule() {
@@ -384,18 +382,25 @@ function createDriveSync({ api, readLocal, applyRemote, isPristine, store, onSta
     clearTimeout(timer);
     timer = setTimeout(flush, delay);
   }
-  /* Picks up changes made on another device when this tab regains focus. */
+  /* Quietly picks up another device's changes when this tab regains focus, at most once per interval. */
   async function refresh() {
-    if (view.status !== 'saved' || !fileId || busy || dirty()) return;
+    if (view.status !== 'saved' || !fileId || busy || dirty() || Date.now() - lastCheck < refreshEvery) return;
+    lastCheck = Date.now();
     try {
       const now = await api.meta(fileId);
       if (now && now.version !== meta.version) {
         const remote = await readRemote(fileId);
-        if (dirty()) { pendingRemote = { data: remote.data, version: now.version }; return ask('both', remote) }
+        if (dirty()) return schedule();
         applyRemote(remote.data); remember(now.version);
         set({ savedAt: Date.now() });
       }
     } catch (e) { fail(e) }
+  }
+  /* A new Google token mid-session carries on saving without re-checking; a fresh page does the full connect. */
+  function resume() {
+    if (!fileId) return connect();
+    set({ status: 'saved', message: '' });
+    return flush();
   }
   async function resolve(pick) {
     set({ status: 'saving', choice: null });
@@ -412,7 +417,7 @@ function createDriveSync({ api, readLocal, applyRemote, isPristine, store, onSta
     set({ status: 'off', choice: null, message: '' });
   }
   function forget() { signOut(); meta.version = meta.base = meta.email = null; store.save(meta); set({ email: null }) }
-  return { connect, schedule, flush, refresh, resolve, signOut, forget, dirty: () => meta.connected && dirty(), view: () => ({ ...view }) };
+  return { connect, resume, schedule, flush, refresh, resolve, signOut, forget, dirty: () => meta.connected && dirty(), view: () => ({ ...view }) };
 }
 /*SYNC-END*/
 
@@ -441,6 +446,14 @@ let S = { deps: examples(), sel: null, tab: 'ledger', view: 'quarter', dayMonth:
 try { const raw = localStorage.getItem('byaj-ledger'); if (raw) S = { ...S, ...JSON.parse(raw) } } catch (e) {}
 if (['ledger', 'tax', 'rules'].includes(location.hash.slice(1))) S.tab = location.hash.slice(1);
 if (!S.deps.find(d => d.id === S.sel)) S.sel = S.deps[0] ? S.deps[0].id : null;
+function setTheme(name, remember) {
+  document.documentElement.setAttribute('data-theme', name);
+  $('theme-toggle').textContent = name === 'light' ? 'Dark theme' : 'Light theme';
+  if (remember) try { localStorage.setItem('byaj-theme', name) } catch (e) {}
+}
+let savedTheme = null;
+try { savedTheme = localStorage.getItem('byaj-theme') } catch (e) {}
+setTheme(savedTheme === 'light' ? 'light' : 'dark');
 let sync = null;
 const save = () => { try { localStorage.setItem('byaj-ledger', JSON.stringify(S)) } catch (e) {} if (sync) sync.schedule() };
 const cur = () => S.deps.find(d => d.id === S.sel);
@@ -456,6 +469,8 @@ function problem(d) {
   if (!(+d.amt > 0)) return d.mode === 'rd' ? 'Enter the monthly instalment.' : d.mode === 'sav' ? 'Enter the opening balance.' : 'Enter the deposit amount.';
   if (!(+d.rate >= 0 && +d.rate <= 30)) return 'Enter an interest rate between 0 and 30%.';
   if (d.mode === 'sav' && (!d.end || isNaN(dn(d.end)))) return 'Enter an end date.';
+  if (d.mode !== 'sav' && d.closedOn && dn(d.closedOn) <= dn(d.start)) return 'The closing date must be after the start date.';
+  if (d.closedRate !== '' && d.closedRate != null && !(+d.closedRate >= 0 && +d.closedRate <= 30)) return 'Enter a closing rate between 0 and 30%.';
   const days = endOf(d) - dn(d.start);
   if (!(days > 0)) return d.mode === 'sav' ? 'End date must be on or after the start date.' : 'Enter a tenor of at least one day.';
   if (days > 366 * 30) return 'Tenor is limited to 30 years.';
@@ -467,7 +482,7 @@ function renderList() {
   $('deplist').innerHTML = S.deps.length ? S.deps.map(d => {
     const bad = problem(d);
     return `<button class="dep" data-pick="${d.id}" aria-current="${d.id === S.sel}"><b>${esc(d.name || 'Untitled')}</b><span>${+d.amt ? inr(+d.amt, 0) : ''}${d.mode === 'rd' ? '/mo' : ''}</span>
-      <small>${bad ? 'Needs attention' : `${esc(d.bank || 'No bank')} · ${SHORT[d.mode]} · ${+d.rate}%`}</small></button>`;
+      <small>${bad ? 'Needs attention' : `${esc(d.bank || 'No bank')} · ${SHORT[d.mode]} · ${dealRate(d)}%${closedEarly(d) ? ' · closed' : ''}`}</small></button>`;
   }).join('') : '<p class="hint">No deposits yet. Add your first FD, RD or savings account.</p>';
 }
 
@@ -492,6 +507,9 @@ function renderEditor() {
       ${(d.tx || []).map((t, i) => `<div class="txrow"><input aria-label="Date" id="tx-d-${i}" type="date" data-tx="${i}" data-k="date" value="${esc(t.date)}"><input aria-label="Amount" id="tx-a-${i}" type="number" step="1000" data-tx="${i}" data-k="amt" value="${esc(t.amt)}"><button data-txdel="${i}" aria-label="Remove entry">×</button></div>`).join('')}
       <button id="txadd">+ Add entry</button></div>` : `
       <div class="fields three">${field('ty', 'Years', d.ty, 'number', 'min="0"')}${field('tm', 'Months', d.tm, 'number', 'min="0"')}${field('td', 'Days', d.td, 'number', 'min="0"')}</div>`}
+    ${d.mode === 'sav' ? '' : `<details ${d.closedOn ? 'open' : ''}><summary>Closed this early?</summary><div>
+      <div class="fields">${field('closedOn', 'Closed on', d.closedOn || '', 'date')}${field('closedRate', 'Rate paid after penalty (%)', d.closedRate == null ? '' : d.closedRate, 'number', 'min="0" max="30" step="0.05"')}</div>
+      <span class="hint">Interest stops on this date in every year. Leave the rate blank to keep the booked rate. Clear the date if it stays open.</span></div></details>`}
     <details ${S.openMethod ? 'open' : ''} id="method"><summary>Match your bank's method</summary><div>
       ${pick('basis', 'Interest credited on', d.basis, { calendar: 'Calendar quarter/month ends', anniv: 'Every 3 months (or 1) from start date' })}
       ${pick('dc', 'Days in a year', d.dc, { 365: 'Always 365', actual: '366 in leap years' })}
@@ -513,7 +531,7 @@ function renderLedger() {
   const bad = problem(d);
   if (bad) { el.innerHTML = `<section class="sheet"><h2>${esc(d.name || 'This deposit')}</h2><div class="note">${esc(bad)}</div></section>`; return }
   const s = simulate(d), payout = d.mode === 'qpay' || d.mode === 'mpay', tb = textbook(d, s), showAdded = d.mode === 'rd' || d.mode === 'sav';
-  const R = rulesFor(S.tax.fy || fyOf(todayDn())), slab = +S.tax.slab, after = s.total * (1 - slab / 100 * (1 + R.cess / 100));
+  const R = rulesFor(S.tax.fy || fyOf(todayDn())), slab = S.autoSlab != null ? +S.autoSlab : +S.tax.slab, after = s.total * (1 - slab / 100 * (1 + R.cess / 100));
   const notes = [];
   if (s.simple) notes.push(['', `Under 180 days, so this uses simple interest paid at maturity, as most banks do.`]);
   if (s.overdrawn) notes.push(['', 'A withdrawal is larger than the balance at that date. The balance is held at zero from there.']);
@@ -534,7 +552,8 @@ function renderLedger() {
   const first = s.rows[0], denom = d.dc === 'actual' && isLeap(parts(first.n).y) ? 366 : 365;
   const diff = tb == null ? null : s.total - tb;
   const howCredit = s.simple ? 'All interest is paid at maturity with no compounding.' : payout ? `Interest is paid out to you ${d.mode === 'mpay' ? 'each month' : 'each quarter'} and the principal stays the same.` : `Interest is added to the balance ${d.basis === 'calendar' ? 'at each quarter end, so it is in your account on 1 Jul, 1 Oct, 1 Jan and 1 Apr' : 'every 3 months from the start date'}, and earns interest from then on.`;
-  const earlyAllowed = d.mode !== 'sav';
+  if (closedEarly(d)) notes.push(['', `Closed early on ${fmtD(dn(d.closedOn))}${dealRate(d) !== +d.rate ? ` at ${dealRate(d)}%` : ''}. Figures here and in the tax view stop on that date.`]);
+  const earlyAllowed = d.mode !== 'sav' && !closedEarly(d);
   let early = '';
   if (earlyAllowed) {
     const c = S.close[d.id] || {}, cd = c.date || iso(addMonths(s.start, Math.max(1, Math.round(s.days / 61)))), held = c.held != null ? c.held : d.rate, pen = c.pen != null ? c.pen : 1;
@@ -572,19 +591,18 @@ function renderLedger() {
     </div></section></section>`;
 }
 
+/* Every year from the earliest to the latest with a deposit or your own entries, with no gaps. */
 function fyOptions(items) {
-  const set = new Set([fyOf(todayDn())]);
-  for (const { sim } of items) { for (const x of sim.rows) set.add(fyOf(x.n)); for (const [d] of sim.receipts) set.add(fyOf(d)) }
-  return [...set].sort((a, b) => a - b);
+  const set = new Set([fyOf(todayDn()), ...(S.years || []).map(Number), ...Object.keys(S.tax.income || {}).map(Number)]);
+  for (const { sim } of items) { for (const x of [sim.rows[0], sim.rows[sim.rows.length - 1]]) if (x) set.add(fyOf(x.n)); for (const [d] of sim.receipts) set.add(fyOf(d)) }
+  const low = Math.min(...set), high = Math.max(...set), out = [];
+  for (let y = low; y <= high; y++) out.push(y);
+  return out;
 }
-
-function renderTax() {
-  const t = S.tax, items = validItems(), fys = fyOptions(items);
-  if (!fys.includes(+t.fy)) t.fy = fyOf(todayDn());
-  const fy = +t.fy, R = rulesFor(fy), c = taxCalc(items, fy, t, R), today = todayDn(), estimatedTds = c.tds;
-  const senior = t.age === 'senior';
-  t.income = t.income || {};
-  const inc = t.income[fy] = t.income[fy] || { payments: [] };
+/* Income that usually repeats. Gains and advance tax payments belong to one year, so they are not copied. */
+const COPY_YEAR_FIELDS = ['salary', 'rent', 'biz', 'other', 'oldDed', 'tdsSalary', 'tdsOther', 'misc'];
+function yearFigures(fy, items, t, today) {
+  const R = rulesFor(fy), c = taxCalc(items, fy, t, R), estimatedTds = c.tds, inc = (t.income || {})[fy] || {};
   const hasIncome = ['salary', 'rent', 'biz', 'other', 'stcg', 'ltcg'].some(k => n0(inc[k]) > 0) || (inc.misc || []).some(m => n0(m.amt) > 0);
   if (inc.bankTds !== '' && inc.bankTds != null) c.tds = n0(inc.bankTds);
   let full = null;
@@ -592,16 +610,29 @@ function renderTax() {
     full = fullTax(inc, t.regime, t.age, c.interest, c.deduction, R);
     c.tax = Math.max(full.total - fullTax(inc, t.regime, t.age, 0, 0, R).total, 0);
     c.effective = c.interest ? c.tax / c.interest : 0;
-    t.slab = +(full.top * 100).toFixed(2);
   }
   c.net = c.tax - c.tds;
-  const totalTax = full ? full.total : c.tax, miscTax = (inc.misc || []).reduce((s, m) => s + n0(m.tax), 0), otherTds = n0(inc.tdsSalary) + n0(inc.tdsOther) + miscTax, allTds = c.tds + otherTds;
-  const afterTds = Math.max(totalTax - allTds, 0), required = afterTds >= +R.advanceMin && !(senior && !(n0(inc.biz) > 0));
+  const totalTax = full ? full.total : c.tax, miscTax = (inc.misc || []).reduce((s, m) => s + n0(m.tax), 0), allTds = c.tds + n0(inc.tdsSalary) + n0(inc.tdsOther) + miscTax;
+  const afterTds = Math.max(totalTax - allTds, 0), required = afterTds >= +R.advanceMin && !(t.age === 'senior' && !(n0(inc.biz) > 0));
   const plan = advancePlan(required ? afterTds : 0, inc.payments, fy, today, R);
-  const safeText = R.instalments.filter(x => +x.safe < +x.pct).map(x => `${pctText(x.safe)} by ${x.d} ${MON[x.m - 1]}`).join(' and ');
-  const slabChoices = [...new Set([...R.newSlabs, ...R.oldSlabs].map(s => +s.rate).concat(+t.slab))].sort((a, b) => a - b);
   const paidAll = (inc.payments || []).reduce((s, p) => s + n0(p.amt), 0), balance = Math.max(afterTds - paidAll, 0);
-  const lines = items.map(({ dep, sim }) => ({ dep, q: quarters(sim, fy, t.basis) })).filter(l => l.q.some(v => v > .004));
+  return { R, c, estimatedTds, hasIncome, full, totalTax, miscTax, allTds, afterTds, required, plan, paidAll, balance };
+}
+
+function renderTax() {
+  const t = S.tax, items = validItems(), fys = fyOptions(items);
+  if (!fys.includes(+t.fy)) t.fy = fyOf(todayDn());
+  const today = todayDn(), senior = t.age === 'senior';
+  t.income = t.income || {};
+  const inc = t.income[+t.fy] = t.income[+t.fy] || { payments: [] };
+  const fy = +t.fy, { R, c, estimatedTds, hasIncome, full, totalTax, miscTax, allTds, afterTds, required, plan, paidAll, balance } = yearFigures(fy, items, t, today);
+  S.autoSlab = full ? +(full.top * 100).toFixed(2) : null;
+  const shownSlab = full ? S.autoSlab : t.slab;
+  const safeText = R.instalments.filter(x => +x.safe < +x.pct).map(x => `${pctText(x.safe)} by ${x.d} ${MON[x.m - 1]}`).join(' and ');
+  const slabChoices = [...new Set([...R.newSlabs, ...R.oldSlabs].map(s => +s.rate).concat(+shownSlab))].sort((a, b) => a - b);
+  const prevInc = t.income[fy - 1] || {}, canCopyPrev = !hasIncome && COPY_YEAR_FIELDS.some(k => Array.isArray(prevInc[k]) ? prevInc[k].length : n0(prevInc[k]) > 0);
+  const yearRows = fys.map(y => ({ y, f: yearFigures(y, items, t, today) }));
+  const lines = items.map(({ dep, sim }) => ({ dep, sim, q: quarters(sim, fy, t.basis) })).filter(l => l.q.some(v => v > .004));
   const qt = [0, 1, 2, 3].map(i => lines.reduce((s, l) => s + l.q[i], 0));
   const qTax = qt.map(v => v * c.effective);
   const STATE = { met: '<span class="pill ok">Paid on time</span>', within: '<span class="pill ok">Short, no interest</span>', missed: '<span class="pill stamp">Missed</span>', next: '<span class="pill stamp">Next due</span>', later: '<span class="pill">Upcoming</span>' };
@@ -638,17 +669,26 @@ function renderTax() {
   const qHead = i => `Q${i + 1} ${QN[i]}<small style="font-weight:400">${i < 3 ? fy : fy + 1}</small>`;
   $('taxpage').innerHTML = `
     <section class="sheet"><div class="row"><h2>Your tax position</h2><span class="hint">${rulesSource(fy) == null ? 'Using built-in rates.' : `Using your rates from ${fyLabel(rulesSource(fy))}.`} <button class="link" data-tab="rules">Change in Settings</button></span></div>
+      <div class="tight"><h3>Financial year</h3>
+        <div class="acts"><div class="seg" role="tablist" aria-label="Financial year">${fys.map(y => `<button role="tab" data-fy="${y}" aria-selected="${y === fy}">${fyLabel(y)}</button>`).join('')}</div>
+        <button data-addyear="prev">+ Earlier year</button><button data-addyear="next">+ Later year</button></div>
+        <span class="hint">Your deposits carry across every year until they mature or close. Income and tax paid are entered separately for each year.</span>
+      </div>
       ${ruleProblems(R).length ? '<div class="note">Some values in Settings need fixing, so these figures may be wrong. <button class="link" data-tab="rules">Open Settings</button></div>' : ''}
       <div class="fields">
-        ${pick('fy', 'Financial year', fy, Object.fromEntries(fys.map(y => [y, fyLabel(y)])), 'data-t', 't-')}
         ${pick('age', 'Age', t.age, { below60: 'Below 60', senior: '60 or above' }, 'data-t', 't-')}
         ${pick('regime', 'Tax regime', t.regime, { new: 'New regime', old: 'Old regime' }, 'data-t', 't-')}
-        ${(s => hasIncome ? s.replace('<select', '<select disabled') : s)(pick('slab', hasIncome ? 'Top slab (from your income)' : 'Your top slab', t.slab, Object.fromEntries(slabChoices.map(x => [x, pctText(x)])), 'data-t', 't-'))}
+        ${(s => hasIncome ? s.replace('<select', '<select disabled') : s)(pick('slab', hasIncome ? 'Top slab (from your income)' : 'Your top slab', shownSlab, Object.fromEntries(slabChoices.map(x => [x, pctText(x)])), 'data-t', 't-'))}
         ${pick('basis', 'Report interest', t.basis, { accrual: 'As it accrues each year', receipt: 'When received' }, 'data-t', 't-')}
         ${pick('pan', 'PAN with banks', t.pan ? 'yes' : 'no', { yes: `Yes (${pctText(R.tdsPan)} TDS)`, no: `No (${pctText(R.tdsNoPan)} TDS)` }, 'data-t', 't-')}
       </div>
     </section>
-    <section class="sheet"><div><h2>Your income and tax paid, ${fyLabel(fy)}</h2><span class="hint">Enter full-year figures. Interest from your deposits is added automatically.</span></div>
+    <section class="sheet"><div class="row"><h2>All years</h2><button data-copy="t-years">Copy for Excel</button></div>
+      <div class="scroll"><table id="t-years"><thead><tr><th>Financial year</th><th>Deposit interest</th><th>Tax for the year</th><th>TDS, TCS and tax paid</th><th>Advance tax paid</th><th>Still to pay</th></tr></thead><tbody>
+      ${yearRows.map(({ y, f }) => `<tr class="${y === fy ? 'credit' : ''}"><td><button class="link" data-fy="${y}">${fyLabel(y)}</button></td><td>${dash(f.c.interest)}</td><td>${dash(f.totalTax)}</td><td>${dash(f.allTds)}</td><td>${dash(f.paidAll)}</td><td>${dash(f.balance)}</td></tr>`).join('')}
+      </tbody></table></div>
+    </section>
+    <section class="sheet"><div class="row"><div><h2>Your income and tax paid, ${fyLabel(fy)}</h2><span class="hint">Enter full-year figures. Interest from your deposits is added automatically.</span></div>${canCopyPrev ? `<button id="copy-prev">Copy income from ${fyLabel(fy - 1)}</button>` : ''}</div>
       <h3>Income</h3>
       <div class="fields">
         ${mon('salary', 'Gross salary', 'Standard deduction is applied for you')}
@@ -689,7 +729,7 @@ function renderTax() {
     </section>
     <div class="tiles">
       <div class="tile"><span>Interest in ${fyLabel(fy)}</span><b>${inr(c.interest)}</b></div>
-      <div class="tile"><span>Tax on this interest</span><b>${inr(c.tax)}</b><small>${pctText(t.slab)} + ${pctText(R.cess)} cess${c.deduction ? `, after ${inr(c.deduction, 0)} deduction` : ''}</small></div>
+      <div class="tile"><span>Tax on this interest</span><b>${inr(c.tax)}</b><small>${pctText(shownSlab)} + ${pctText(R.cess)} cess${c.deduction ? `, after ${inr(c.deduction, 0)} deduction` : ''}</small></div>
       <div class="tile"><span>TDS banks should deduct</span><b>${inr(c.tds)}</b><small>estimate, per bank</small></div>
       <div class="tile"><span>${c.net >= 0 ? 'Left for you to pay' : 'Excess TDS to claim back'}</span><b>${inr(Math.abs(c.net))}</b><small>${c.net >= 0 ? 'tax minus TDS' : 'via your income tax return'}</small></div>
     </div>
@@ -703,7 +743,7 @@ function renderTax() {
     </section>
     <section class="sheet"><div class="row"><h2>Interest by deposit and quarter</h2><button data-copy="t-matrix">Copy for Excel</button></div>
       ${lines.length ? `<div class="scroll"><table id="t-matrix"><thead><tr><th>Deposit</th>${[0, 1, 2, 3].map(i => `<th>${qHead(i)}</th>`).join('')}<th>FY total</th></tr></thead><tbody>
-        ${lines.map(l => `<tr><td>${esc(l.dep.name || 'Untitled')}<small>${esc(l.dep.bank || 'No bank')} · ${SHORT[l.dep.mode]}</small></td>${l.q.map(v => `<td>${dash(v)}</td>`).join('')}<td>${inr(l.q.reduce((a, b) => a + b, 0))}</td></tr>`).join('')}
+        ${lines.map(l => `<tr><td>${esc(l.dep.name || 'Untitled')}<small>${esc(l.dep.bank || 'No bank')} · ${SHORT[l.dep.mode]} · ${closedEarly(l.dep) ? 'closed' : l.dep.mode === 'sav' ? 'to' : 'matures'} ${fmtD(l.dep.mode === 'sav' ? l.sim.end - 1 : l.sim.end)}</small></td>${l.q.map(v => `<td>${dash(v)}</td>`).join('')}<td>${inr(l.q.reduce((a, b) => a + b, 0))}</td></tr>`).join('')}
         </tbody><tfoot><tr><td>Total interest</td>${qt.map(v => `<td>${inr(v)}</td>`).join('')}<td>${inr(c.interest)}</td></tr>
         <tr><td>Tax to set aside</td>${qTax.map(v => `<td>${inr(v)}</td>`).join('')}<td>${inr(c.tax)}</td></tr></tfoot></table></div>` : `<p class="hint">No interest falls in ${fyLabel(fy)}. Choose another year or add a deposit.</p>`}
     </section>
@@ -800,7 +840,7 @@ function payload() {
     if (entries.length) income[fy] = Object.fromEntries(entries);
   }
   const { fy, income: _, ...tax } = S.tax;
-  return { deps: S.deps, close: S.close, rules: S.rules, tax: { ...tax, income } };
+  return { deps: S.deps, close: S.close, rules: S.rules, years: S.years || [], tax: { ...tax, income } };
 }
 function isPristine() {
   const bare = list => JSON.stringify(list.map(({ id, ...d }) => d)), p = payload();
@@ -809,7 +849,7 @@ function isPristine() {
 function applyData(data) {
   const d = data || { deps: examples(), close: {}, rules: {}, tax: defaultTax() };
   const seen = S.tax.fy;
-  S.deps = d.deps; S.close = d.close || {}; S.rules = d.rules || {};
+  S.deps = d.deps; S.close = d.close || {}; S.rules = d.rules || {}; S.years = d.years || []; S.autoSlab = null;
   S.tax = { ...defaultTax(), ...d.tax, fy: seen, income: (d.tax && d.tax.income) || {} };
   S.sel = S.deps[0] ? S.deps[0].id : null;
   renderEditor(); render();
@@ -841,6 +881,17 @@ document.addEventListener('click', e => {
   if (t.id === 'add') {
     const y = todayDn(), d = { id: newId(), name: 'New deposit', bank: '', mode: 'cum', amt: 100000, rate: 7, start: iso(y), ty: 1, tm: 0, td: 0, end: iso(addMonths(y, 12)), tx: [], basis: 'calendar', dc: '365', round: 'paise', shortSimple: true };
     S.deps.push(d); S.sel = d.id; S.tab = 'ledger'; renderEditor(); render(); refocus('f-name'); return;
+  }
+  if (t.id === 'theme-toggle') { setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light', true); return }
+  if (t.dataset.fy) { S.tax.fy = +t.dataset.fy; renderTax(); save(); return }
+  if (t.dataset.addyear) {
+    const list = fyOptions(validItems()), y = t.dataset.addyear === 'prev' ? list[0] - 1 : list[list.length - 1] + 1;
+    S.years = [...(S.years || []), y]; S.tax.fy = y; renderTax(); save(); return;
+  }
+  if (t.id === 'copy-prev') {
+    const from = S.tax.income[S.tax.fy - 1], to = S.tax.income[S.tax.fy];
+    for (const k of COPY_YEAR_FIELDS) if (from[k] != null) to[k] = JSON.parse(JSON.stringify(from[k]));
+    renderTax(); save(); return;
   }
   if (t.id === 'sync-in') { signIn(); return }
   if (t.id === 'sync-out') { sync.signOut(); dropToken(); return }
@@ -1030,7 +1081,10 @@ function driveApi() {
       return call(`${UP}?uploadType=multipart&fields=id,version`, { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${b}` },
         body: `--${b}\r\n${part({ name: FILE_NAME, parents: ['appDataFolder'] })}--${b}\r\n${part(body)}--${b}--` });
     },
-    update: (id, body) => call(`${UP}/${id}?uploadType=media&fields=id,version`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    update: (id, body) => {
+      const text = JSON.stringify(body);   // keepalive lets a save finish as the tab closes, but only for small requests
+      return call(`${UP}/${id}?uploadType=media&fields=id,version`, { method: 'PATCH', keepalive: text.length < 60000, headers: { 'Content-Type': 'application/json' }, body: text });
+    }
   };
 }
 function renderSync(v) {
@@ -1085,20 +1139,20 @@ function startGoogle() {
           return;
         }
         keepToken(r.access_token, r.expires_in);
-        if (['saved', 'saving', 'offline'].includes(sync.view().status)) { sync.flush(); return }
-        sync.connect();
+        sync.resume();
       },
       error_callback: () => { silentPending = false; renderSync(sync.view()) }
     });
   };
   addEventListener('click', renewSilently, true);
   addEventListener('keydown', renewSilently, true);
-  if (sync.view().status === 'signin' && restoreToken()) sync.connect();
+  if (sync.view().status === 'signin' && restoreToken()) sync.connect({ trusted: true });
   if (window.google && google.accounts) ready();
   else { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = ready; document.head.appendChild(s) }
   addEventListener('focus', () => sync.refresh());
   addEventListener('online', () => sync.flush());
-  addEventListener('beforeunload', e => { if (token && sync.dirty()) { sync.flush(); e.preventDefault(); e.returnValue = '' } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) sync.flush() });
+  addEventListener('pagehide', () => sync.flush());
 }
 
 renderEditor();
