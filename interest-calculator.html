@@ -2,56 +2,60 @@
 <title>Byaj Ledger</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Zilla+Slab:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Instrument+Serif&display=swap">
 <style>
-/* Layout: a bank passbook. Deposits on the left, the printed ledger on the right. Teal ink, violet for "rubber stamp" alerts. */
+/* Layout: soft glass cards floating on a blush and lilac wash. Deposits on the left, figures on the right. Plum ink, rose for alerts. */
 :root {
-  --bg: #e9f0ee; --surface: #fbfdfc; --sunken: #dfe9e6; --ink: #12302c; --muted: #4f6b66; --rule: #c3d3cf;
-  --accent: #0d6b5c; --on-accent: #ffffff; --stamp: #5a3ea6; --stamp-bg: #ebe6f8; --warn: #8a5a00; --warn-bg: #fbf0d6; --bad: #a32a2a;
-  --display: "Zilla Slab", Rockwell, Georgia, serif; --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --bg: #f7eff3; --glow1: #f7d9e3; --glow2: #e3d9f6; --glow3: #fbe6d4; --surface: rgba(255, 255, 255, .74); --field: #fffafc; --sunken: #f1e6ef; --ink: #2e2036; --muted: #635669; --rule: #e0d0de; --shadow: rgba(92, 56, 110, .10);
+  --accent: #7b4a8c; --on-accent: #ffffff; --stamp: #a33f65; --stamp-bg: #fbe4ec; --warn: #855600; --warn-bg: #fbf0d9; --bad: #b0334a;
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif; --body: "Figtree", "Segoe UI", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0e1a18; --surface: #15231f; --sunken: #1c2e2a; --ink: #e2efeb; --muted: #9db5af; --rule: #2e4540;
-  --accent: #4fc2ac; --on-accent: #06211c; --stamp: #bda8f5; --stamp-bg: #2a2345; --warn: #eec066; --warn-bg: #3a2d0f; --bad: #f09090; color-scheme: dark } }
+  --bg: #19121f; --glow1: #3a1f36; --glow2: #2b2149; --glow3: #38261f; --surface: rgba(44, 32, 53, .72); --field: #231a2b; --sunken: #2f2439; --ink: #f4ebf4; --muted: #bbacc0; --rule: #453650; --shadow: rgba(0, 0, 0, .28);
+  --accent: #d6aee8; --on-accent: #27142f; --stamp: #f6adc6; --stamp-bg: #4a2336; --warn: #eec066; --warn-bg: #3d2f10; --bad: #f7a0ad; color-scheme: dark } }
 :root[data-theme="dark"] {
-  --bg: #0e1a18; --surface: #15231f; --sunken: #1c2e2a; --ink: #e2efeb; --muted: #9db5af; --rule: #2e4540;
-  --accent: #4fc2ac; --on-accent: #06211c; --stamp: #bda8f5; --stamp-bg: #2a2345; --warn: #eec066; --warn-bg: #3a2d0f; --bad: #f09090; color-scheme: dark }
+  --bg: #19121f; --glow1: #3a1f36; --glow2: #2b2149; --glow3: #38261f; --surface: rgba(44, 32, 53, .72); --field: #231a2b; --sunken: #2f2439; --ink: #f4ebf4; --muted: #bbacc0; --rule: #453650; --shadow: rgba(0, 0, 0, .28);
+  --accent: #d6aee8; --on-accent: #27142f; --stamp: #f6adc6; --stamp-bg: #4a2336; --warn: #eec066; --warn-bg: #3d2f10; --bad: #f7a0ad; color-scheme: dark }
 * { box-sizing: border-box }
 [hidden] { display: none !important }
-body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+body { background: radial-gradient(70vw 60vh at 8% -5%, var(--glow1), transparent 70%), radial-gradient(60vw 60vh at 100% 10%, var(--glow2), transparent 70%), radial-gradient(70vw 60vh at 50% 110%, var(--glow3), transparent 70%), var(--bg); background-attachment: fixed; color: var(--ink); font: 15px/1.5 var(--body); }
 .wrap { max-width: 1320px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px }
 header { display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: end; justify-content: space-between }
-h1 { font: 700 2.1rem/1.1 var(--display); margin: 0 } h2 { font: 600 1.3rem/1.25 var(--display); margin: 0; text-wrap: balance } h3 { font: 600 1.05rem/1.3 var(--display); margin: 0 }
+h1 { font: 400 3rem/1.05 var(--display); letter-spacing: -.01em; margin: 0 } h2 { font: 400 1.65rem/1.2 var(--display); margin: 0; text-wrap: balance } h3 { font: 600 .98rem/1.3 var(--body); margin: 0 }
 header p { margin: 4px 0 0; color: var(--muted); max-width: 62ch }
-nav, .seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--sunken); padding: 4px; border-radius: 6px; width: fit-content; max-width: 100% }
-button { font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--rule); background: var(--surface); border-radius: 5px; padding: 6px 12px }
+nav, .seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--sunken); padding: 4px; border-radius: 22px; width: fit-content; max-width: 100% }
+button { font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--rule); background: var(--field); border-radius: 999px; padding: 6px 14px; transition: border-color .15s, background-color .15s }
 button:hover { border-color: var(--accent) }
+button:disabled { opacity: .55; cursor: default }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+button.copy { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 6px; color: var(--muted); background: transparent; border-color: transparent; font-size: .72rem; font-weight: 600 }
+button.copy:hover { color: var(--accent); background: var(--sunken) }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 nav button, .seg button { border-color: transparent; background: none; font-weight: 500 }
 nav button[aria-selected="true"], .seg button[aria-selected="true"] { background: var(--accent); color: var(--on-accent) }
-.link { border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; text-align: left }
+.link { border: 0; background: none; padding: 0; border-radius: 3px; color: var(--accent); text-decoration: underline; text-align: left }
 .danger { color: var(--bad) }
 .cols { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 20px; align-items: start }
 .stack { display: grid; gap: 16px; min-width: 0 } .tight { display: grid; gap: 8px; min-width: 0 }
-.sheet { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; display: grid; gap: 12px; min-width: 0 }
+.sheet { background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--rule); border-radius: 20px; padding: 20px; display: grid; gap: 14px; min-width: 0; box-shadow: 0 10px 30px var(--shadow) }
 .row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between }
-.dep { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; width: 100%; text-align: left; padding: 8px 10px }
+.dep { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; width: 100%; text-align: left; padding: 10px 14px; border-radius: 14px }
 .dep[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
 .dep b { font-weight: 600; overflow-wrap: anywhere } .dep small { color: var(--muted); grid-column: 1 / -1 }
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px }
 .fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)) }
 label { display: grid; gap: 3px; font-size: .84rem; font-weight: 500; color: var(--muted); align-content: start; min-width: 0 }
-textarea { font: 400 .85rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 8px; width: 100%; min-height: 90px; resize: vertical }
-#sync { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 14px }
-#sync .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+textarea { font: 400 .85rem var(--body); color: var(--ink); background: var(--field); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; width: 100%; min-height: 90px; resize: vertical }
+#sync { background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--rule); border-radius: 16px; padding: 12px 18px }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500 }
-input, select { font: 400 .95rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 8px; width: 100%; min-width: 0 }
+input, select { font: 400 .95rem var(--body); color: var(--ink); background: var(--field); border: 1px solid var(--rule); border-radius: 10px; padding: 7px 10px; width: 100%; min-width: 0 }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .85 }
 .hint { font-size: .8rem; color: var(--muted); font-weight: 400 }
 details summary { cursor: pointer; font-weight: 500; color: var(--accent) } details > div { margin-top: 10px; display: grid; gap: 10px }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden }
-.tile { background: var(--surface); padding: 12px 14px } .tile span { display: block; font-size: .82rem; color: var(--muted) }
-.tile b { display: block; font: 600 1.4rem/1.3 var(--display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere } .tile small { color: var(--muted); font-size: .78rem }
-.scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 5px; max-height: 620px; overflow-y: auto }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px }
+.tile { position: relative; background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--rule); border-radius: 16px; padding: 14px 16px; box-shadow: 0 6px 18px var(--shadow) } .tile span { display: block; font-size: .82rem; color: var(--muted); padding-right: 26px }
+.tile b { display: block; font: 400 1.75rem/1.25 var(--display); overflow-wrap: anywhere } .tile small { color: var(--muted); font-size: .78rem }
+.scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 14px; max-height: 620px; overflow-y: auto }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .9rem }
 th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule) }
 th:first-child, td:first-child { text-align: left }
@@ -60,11 +64,13 @@ thead th { position: sticky; top: 0; background: var(--sunken); font-weight: 600
 tfoot td { font-weight: 600; background: var(--sunken); border-bottom: 0 }
 tr.credit td { background: color-mix(in srgb, var(--accent) 10%, transparent) }
 td small { display: block; color: var(--muted); font-size: .76rem }
-.pill { display: inline-block; font-size: .75rem; font-weight: 600; padding: 1px 7px; border-radius: 3px; background: var(--sunken); color: var(--muted); white-space: nowrap }
+.pill { display: inline-block; font-size: .75rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--sunken); color: var(--muted); white-space: nowrap }
 .pill.stamp { background: var(--stamp-bg); color: var(--stamp) } .pill.ok { color: var(--accent) } .pill.warn { background: var(--warn-bg); color: var(--warn) }
-.note { background: var(--warn-bg); color: var(--warn); padding: 8px 12px; border-radius: 4px; font-size: .88rem } .note.stamp { background: var(--stamp-bg); color: var(--stamp) }
+.note { background: var(--warn-bg); color: var(--warn); padding: 10px 14px; border-radius: 12px; font-size: .88rem } .note.stamp { background: var(--stamp-bg); color: var(--stamp) }
 .prose { font-size: .9rem; color: var(--muted); display: grid; gap: 6px; max-width: 80ch } .prose p, .prose ul { margin: 0 } .prose ul { padding-left: 18px; display: grid; gap: 4px } .prose strong { color: var(--ink); font-weight: 600 }
 .txrow { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 6px }
+.txrow.misc { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) auto }
+@media (max-width: 560px) { .txrow.misc { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto } .txrow.misc > :first-child { grid-column: 1 / -1 } }
 @media (max-width: 920px) { .cols { grid-template-columns: minmax(0, 1fr) } }
 </style>
 
@@ -544,7 +550,8 @@ function renderLedger() {
       ${res}<span class="hint">Banks use the rate for the period the money actually stayed, which is often below your booked rate. Check that rate on your bank's rate card.</span></div></details>`;
   }
   el.innerHTML = `<section class="stack">
-    <div class="row"><div><h2>${esc(d.name || 'Untitled')}</h2><span class="hint">${MODES[d.mode]} · ${fmtD(s.start)} to ${fmtD(d.mode === 'sav' ? s.end - 1 : s.end)} · ${s.days} days</span></div></div>
+    <div class="row"><div><h2>${esc(d.name || 'Untitled')}</h2><span class="hint">${MODES[d.mode]} · ${fmtD(s.start)} to ${fmtD(d.mode === 'sav' ? s.end - 1 : s.end)} · ${s.days} days</span></div>
+      <button data-copyval="${esc([d.name || 'Untitled', `${MODES[d.mode]}${d.bank ? ', ' + d.bank : ''}`, `${fmtD(s.start)} to ${fmtD(d.mode === 'sav' ? s.end - 1 : s.end)} (${s.days} days)`, `Rate: ${+d.rate}%`, `Invested: ${inr(s.invested, 0)}`, `Total interest: ${inr(s.total)}`, `${d.mode === 'sav' ? 'Closing balance' : 'Maturity amount'}: ${inr(s.maturity)}`, s.xirr == null ? null : `Yield per year: ${s.xirr.toFixed(2)}%`].filter(Boolean).join('\n'))}">Copy summary</button></div>
     <div class="tiles">
       <div class="tile"><span>${d.mode === 'rd' ? 'Total instalments' : d.mode === 'sav' ? 'Net money added' : 'Amount invested'}</span><b>${inr(s.invested, 0)}</b></div>
       <div class="tile"><span>Total interest</span><b>${inr(s.total)}</b></div>
@@ -588,7 +595,7 @@ function renderTax() {
     t.slab = +(full.top * 100).toFixed(2);
   }
   c.net = c.tax - c.tds;
-  const totalTax = full ? full.total : c.tax, otherTds = n0(inc.tdsSalary) + n0(inc.tdsOther), allTds = c.tds + otherTds;
+  const totalTax = full ? full.total : c.tax, miscTax = (inc.misc || []).reduce((s, m) => s + n0(m.tax), 0), otherTds = n0(inc.tdsSalary) + n0(inc.tdsOther) + miscTax, allTds = c.tds + otherTds;
   const afterTds = Math.max(totalTax - allTds, 0), required = afterTds >= +R.advanceMin && !(senior && !(n0(inc.biz) > 0));
   const plan = advancePlan(required ? afterTds : 0, inc.payments, fy, today, R);
   const safeText = R.instalments.filter(x => +x.safe < +x.pct).map(x => `${pctText(x.safe)} by ${x.d} ${MON[x.m - 1]}`).join(' and ');
@@ -611,6 +618,18 @@ function renderTax() {
   const interestNotes = [];
   if (required && plan.locked) interestNotes.push(`Missed instalments have already added about ${inr(plan.locked, 0)} of interest. Paying now cannot remove it. Pay it with your final tax.`);
   if (required && plan.over && plan.running) interestNotes.push(`Less than ${pctText(R.yearEndPct)} of the tax was paid by ${fmtD(plan.yearEnd)}, so about ${inr(plan.monthly, 0)} of interest is added per month until you pay. About ${inr(plan.running, 0)} so far.`);
+  const taxSummary = [
+    `Byaj Ledger tax summary, ${fyLabel(fy)}`,
+    `Deposit interest: ${inr(c.interest)}`,
+    full ? `Taxable income: ${inr(full.taxable, 0)}` : null,
+    `Tax for the year: ${inr(totalTax, 0)}`,
+    `TDS, TCS and tax paid: ${inr(allTds, 0)}`,
+    `Advance tax paid: ${inr(paidAll, 0)}`,
+    `Still to pay: ${inr(balance, 0)}`,
+    required && nextPay ? `Next payment: ${inr(Math.ceil(nextPay.toPay), 0)} by ${fmtD(nextPay.date)}` : null,
+    required && plan.locked ? `Interest for missed instalments: about ${inr(plan.locked, 0)}` : null,
+    'Estimate for planning, not tax advice.'
+  ].filter(Boolean).join('\n');
   const mon = (k, label, hint = '') => `<label for="i-${k}">${label}<input id="i-${k}" type="number" min="0" step="1000" data-i="${k}" value="${esc(inc[k] == null ? '' : inc[k])}" placeholder="0">${hint ? `<span class="hint">${hint}</span>` : ''}</label>`;
   const creditOn = [Date.UTC(fy, 6, 1), Date.UTC(fy, 9, 1), Date.UTC(fy + 1, 0, 1), Date.UTC(fy + 1, 3, 1)].map(x => x / DAY);
   const qFrom = [Date.UTC(fy, 3, 1), Date.UTC(fy, 6, 1), Date.UTC(fy, 9, 1), Date.UTC(fy + 1, 0, 1)].map(x => x / DAY);
@@ -640,8 +659,8 @@ function renderTax() {
         ${mon('ltcg', 'Long-term equity gains', `Taxed at ${pctText(R.ltcgRate)} above ${inr(+R.ltcgExempt, 0)}`)}
         ${t.regime === 'old' ? mon('oldDed', 'Old regime deductions', '80C, 80D, HRA and so on') : ''}
       </div>
-      <div class="tight"><h3>Miscellaneous income</h3><span class="hint">Any other taxable amount, such as a gift above the limit or a one-off payment. Taxed at your slab rate.</span>
-        ${(inc.misc || []).map((m, i) => `<div class="txrow"><input aria-label="What this amount is" id="m-l-${i}" placeholder="What is this for?" data-m="${i}" data-k="label" value="${esc(m.label)}"><input aria-label="Amount" id="m-a-${i}" type="number" min="0" step="1000" placeholder="Amount" data-m="${i}" data-k="amt" value="${esc(m.amt)}"><button data-mdel="${i}" aria-label="Remove amount">×</button></div>`).join('')}
+      <div class="tight"><h3>Miscellaneous income</h3><span class="hint">Any other taxable amount, such as a gift above the limit or a one-off payment. Taxed at your slab rate. Enter any tax already deducted or paid on it, and it counts towards your tax for the year.</span>
+        ${(inc.misc || []).map((m, i) => `<div class="txrow misc"><input aria-label="What this amount is" id="m-l-${i}" placeholder="What is this for?" data-m="${i}" data-k="label" value="${esc(m.label)}"><input aria-label="Amount" id="m-a-${i}" type="number" min="0" step="1000" placeholder="Amount" data-m="${i}" data-k="amt" value="${esc(m.amt)}"><input aria-label="Tax already paid on this amount" id="m-t-${i}" type="number" min="0" step="100" placeholder="Tax paid" data-m="${i}" data-k="tax" value="${esc(m.tax == null ? '' : m.tax)}"><button data-mdel="${i}" aria-label="Remove amount">×</button></div>`).join('')}
         <button id="madd" style="width:fit-content">+ Add miscellaneous amount</button>
       </div>
       <h3>Tax already covered</h3>
@@ -655,12 +674,12 @@ function renderTax() {
         <button id="padd" style="width:fit-content">+ Add payment</button>
       </div>
     </section>
-    <section class="sheet"><div class="row"><h2>What to pay and by when</h2><button data-copy="t-adv">Copy for Excel</button></div>
+    <section class="sheet"><div class="row"><h2>What to pay and by when</h2><div class="acts">${nextPay && required ? `<button data-copyval="${Math.ceil(nextPay.toPay)}">Copy amount to pay</button>` : ''}<button data-copyval="${esc(taxSummary)}">Copy summary</button>${required ? '<button data-copy="t-adv">Copy for Excel</button>' : ''}</div></div>
       <div class="note stamp tight">${action}</div>
       ${interestNotes.map(n => `<div class="note">${n}</div>`).join('')}
       <div class="tiles">
         <div class="tile"><span>Tax for the year</span><b>${inr(totalTax, 0)}</b><small>${full ? `on ${inr(full.taxable, 0)} taxable income` : 'on deposit interest only'}</small></div>
-        <div class="tile"><span>TDS and TCS</span><b>${inr(allTds, 0)}</b></div>
+        <div class="tile"><span>TDS, TCS and tax paid</span><b>${inr(allTds, 0)}</b>${miscTax ? `<small>includes ${inr(miscTax, 0)} on miscellaneous income</small>` : ''}</div>
         <div class="tile"><span>Advance tax paid</span><b>${inr(paidAll, 0)}</b></div>
         <div class="tile"><span>${totalTax - allTds - paidAll < 0 ? 'Refund expected' : 'Still to pay'}</span><b>${inr(totalTax - allTds - paidAll < 0 ? allTds + paidAll - totalTax : balance, 0)}</b><small>plus any interest shown here</small></div>
       </div>
@@ -817,6 +836,7 @@ document.addEventListener('click', e => {
   if (t.dataset.pick) { S.sel = t.dataset.pick; renderEditor(); render(); return }
   if (t.dataset.month) { S.view = 'day'; S.dayMonth = +t.dataset.month; renderLedger(); save(); return }
   if (t.dataset.copy) { copyTable(t); return }
+  if (t.dataset.copyval != null) { copyText(t, t.dataset.copyval, t.closest('.tile') ? t.closest('.tile').querySelector('b') : t.closest('section')); return }
   if (t.dataset.txdel != null) { cur().tx.splice(+t.dataset.txdel, 1); renderEditor(); render(); return }
   if (t.id === 'add') {
     const y = todayDn(), d = { id: newId(), name: 'New deposit', bank: '', mode: 'cum', amt: 100000, rate: 7, start: iso(y), ty: 1, tm: 0, td: 0, end: iso(addMonths(y, 12)), tx: [], basis: 'calendar', dc: '365', round: 'paise', shortSimple: true };
@@ -934,10 +954,31 @@ document.addEventListener('change', e => { if (onChangeOnly(e.target)) onField(e
 function copyTable(btn) {
   const table = $(btn.dataset.copy); if (!table) return;
   const tsv = [...table.rows].map(r => [...r.cells].map(c => c.innerText.replace(/\s*\n\s*/g, ' ').replace(/₹|,/g, '')).join('\t')).join('\n');
-  const done = msg => { const old = btn.dataset.label || btn.textContent; btn.dataset.label = old; btn.textContent = msg; setTimeout(() => btn.textContent = old, 2200) };
-  const fallback = () => { const rng = document.createRange(); rng.selectNode(table); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rng); done('Selected: press Ctrl+C') };
-  try { navigator.clipboard.writeText(tsv).then(() => done('Copied'), fallback) } catch (e) { fallback() }
+  copyText(btn, tsv, table);
 }
+function copyText(btn, value, selectEl) {
+  const done = (msg, short) => {
+    const old = btn.dataset.label || btn.innerHTML;
+    btn.dataset.label = old; btn.textContent = btn.classList.contains('copy') ? short : msg;
+    setTimeout(() => { btn.innerHTML = old }, 2200);
+  };
+  const fallback = () => { const rng = document.createRange(); rng.selectNode(selectEl); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rng); done('Selected: press Ctrl+C', 'Ctrl+C') };
+  try { navigator.clipboard.writeText(value).then(() => done('Copied', '✓'), fallback) } catch (e) { fallback() }
+}
+/* Every headline figure gets a copy button; the plain number pastes cleanly into a tax challan or a sheet. */
+const COPY_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"></rect><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"></path></svg>';
+function addTileCopy(root) {
+  root.querySelectorAll('.tile').forEach(tile => {
+    const b = tile.querySelector('b'), label = tile.querySelector('span');
+    if (!b || tile.querySelector('.copy') || !/\d/.test(b.textContent)) return;
+    const btn = document.createElement('button');
+    btn.className = 'copy'; btn.innerHTML = COPY_ICON;
+    btn.dataset.copyval = b.textContent.replace(/[₹,]/g, '');
+    btn.setAttribute('aria-label', `Copy ${label ? label.textContent : 'figure'}`);
+    tile.appendChild(btn);
+  });
+}
+for (const id of ['results', 'taxpage']) { const root = $(id); new MutationObserver(() => addTileCopy(root)).observe(root, { childList: true }) }
 
 /* Google sign-in. Only runs where a client ID is configured (the hosted copy).
    Browser-only apps get no refresh token, so the short-lived access token is kept until it expires,
